@@ -1,0 +1,120 @@
+BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+SHELL=/bin/sh
+NAMESPACE=demo
+
+.PHONY: setup-rhoai
+setup-rhoai: add-gpu-operator
+	oc apply -f $(BASE)/yaml/rhoai/authorino.yaml
+	oc apply -f $(BASE)/yaml/rhoai/serverless.yaml
+	oc apply -f $(BASE)/yaml/rhoai/servicemesh.yaml
+	
+	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
+	@until oc get DSCInitialization/default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
+		echo "Waiting for DSCI to be ready..."; \
+		sleep 10; \
+	done
+	
+	oc apply -f ${BASE}/yaml/rhoai/rhoai-cr.yaml	
+	@until oc get DataScienceCluster/default-dsc -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep -q "True"; do \
+		echo "Waiting for DS to be ready..."; \
+		sleep 10; \
+	done
+
+	oc apply -f ${BASE}/yaml/rhoai/odhdashboardconfig.yaml
+
+	oc delete pods -l app=rhods-dashboard -n redhat-ods-applications
+	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
+
+	oc apply -f ${BASE}/yaml/rhoai/group.yaml
+	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
+	
+add-gpu-machineset:
+	@mkdir -p $(WORK_DIR)
+	@$(BASE)/scripts/add-gpu.sh $(WORK_DIR)	
+
+.PHONY: add-gpu-operator
+add-gpu-operator:
+	oc apply -f $(BASE)/yaml/rhoai/nfd.yaml
+
+	@until oc get crd nodefeaturediscoveries.nfd.openshift.io >/dev/null 2>&1; do \
+    	echo "Wait until CRD nodefeaturediscoveries.nfd.openshift.io is ready..."; \
+	done
+
+	oc apply -f $(BASE)/yaml/rhoai/nfd-cr.yaml
+	oc apply -f $(BASE)/yaml/rhoai/nvidia.yaml
+
+	@until oc get crd clusterpolicies.nvidia.com>/dev/null 2>&1; do \
+    	echo "Wait until CRD clusterpolicies.nvidia.com is ready..."; \
+	done
+
+	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
+
+.PHONY: setup-demo
+setup-demo: setup-namespace deploy-minio setup-odh-tec 
+
+	@oc apply -f $(BASE)/yaml/demo/anythingllm.yaml
+	@oc apply -f $(BASE)/yaml/demo/llama-cpp.yaml
+
+.PHONY: teardown-namespace
+teardown-namespace:
+	-oc delete project $(NAMESPACE)
+
+.PHONY: setup-namespace
+setup-namespace:
+	-oc new-project $(NAMESPACE)
+	@oc label namespace $(NAMESPACE) \
+		maistra.io/member-of=istio-system \
+		modelmesh-enabled=false \
+		opendatahub.io/dashboard=true
+
+.PHONY: setup-odh-tec
+setup-odh-tec:
+	@oc apply -f $(BASE)/yaml/infra/odh-tec.yaml -n $(NAMESPACE)
+	
+	@ODH_ROUTE=$$(oc get route odh-tec -n $(NAMESPACE) -o jsonpath='{.spec.host}') && \
+	echo "S3 Browser: $${ODH_ROUTE}"
+
+.PHONY: teardown-odh-tec
+teardown-odh-tec:
+	@oc delete -f $(BASE)/yaml/infra/odh-tec.yaml -n $(NAMESPACE)
+	
+.PHONY: teardown-all
+teardown-all: teardown-minio teardown-odh-tec teardown-namespace
+		
+.PHONY: teardown-minio
+teardown-minio:
+	-oc delete -f $(BASE)/yaml/infra/minio.yaml -n $(NAMESPACE)
+	
+	@PV_NAME=$$(oc get pvc data-minio-0 -n $(NAMESPACE) -o jsonpath='{.spec.volumeName}' 2>/dev/null); \
+	oc delete pvc data-minio-0 -n $(NAMESPACE); \
+	if [ -z "$$PV_NAME" ]; then \
+		echo "PVC data-minio-0 already deleted or has no PV bound."; \
+	else \
+		echo "Waiting for PV $$PV_NAME to be deleted..."; \
+		until ! oc get pv $$PV_NAME >/dev/null 2>&1; do \
+			echo "PV $$PV_NAME still exists..."; \
+			sleep 2; \
+		done; \
+		echo "PV $$PV_NAME deleted."; \
+	fi
+
+.PHONY: deploy-minio
+deploy-minio: teardown-minio
+	@oc apply -f $(BASE)/yaml/infra/minio.yaml -n $(NAMESPACE)
+
+	@until oc get statefulset minio -n $(NAMESPACE) -o jsonpath='{.status.readyReplicas}' | grep -q '1'; do \
+		echo "Waiting for StatefulSet minio to have 1 ready replica..."; \
+		sleep 10; \
+	done
+	@echo "StatefulSet minio has 1 ready replica."
+
+	-oc delete secret aws-connection-my-storage -n $(NAMESPACE)
+
+	@AWS_ACCESS_KEY_ID=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_USER -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64 ) \
+	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
+	AWS_S3_ENDPOINT=$$(oc get route minio -n $(NAMESPACE) -o jsonpath='{.spec.host}') \
+	AWS_ENDPOINT_URL=$$(oc get route minio -n $(NAMESPACE) -o jsonpath='{.spec.host}') \
+		envsubst < $(BASE)/yaml/infra/data-connection.yaml.tmpl | oc create -n $(NAMESPACE) -f -	
+	
+	@$(BASE)/scripts/run-job.sh $(BASE)/yaml/infra/setup-s3.yaml.tmpl $(NAMESPACE) setup-s3-job aws-connection-my-storage
+	

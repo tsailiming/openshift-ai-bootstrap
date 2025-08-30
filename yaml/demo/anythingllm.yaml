@@ -1,0 +1,33 @@
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  annotations:
+    opendatahub.io/notebook-image-creator: 'kube:admin'
+    opendatahub.io/notebook-image-desc: ''
+    opendatahub.io/notebook-image-name: AnythingLLM
+    opendatahub.io/notebook-image-url: quay.io/rh-aiservices-bu/anythingllm-workbench
+    opendatahub.io/recommended-accelerators: '[]'
+    openshift.io/image.dockerRepositoryCheck: '2025-08-04T08:57:33Z'  
+  name: anythingllm  
+  namespace: redhat-ods-applications
+  labels:
+    app.kubernetes.io/created-by: byon
+    opendatahub.io/dashboard: 'true'
+    opendatahub.io/notebook-image: 'true'
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+    - name: latest
+      annotations:
+        opendatahub.io/notebook-python-dependencies: '[]'
+        opendatahub.io/notebook-software: '[]'
+        openshift.io/imported-from: quay.io/rh-aiservices-bu/anythingllm-workbench
+      from:
+        kind: DockerImage
+        name: quay.io/rh-aiservices-bu/anythingllm-workbench
+      generation: 2
+      importPolicy:
+        importMode: Legacy
+      referencePolicy:
+        type: Source

@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: setup-s3-job  
+spec:
+  template:
+    metadata:
+      name: setup-s3-job
+    spec:
+      containers:
+      - name: setup-s3
+        image: docker.io/amazon/aws-cli:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            if aws s3api head-bucket --bucket "$AWS_S3_BUCKET" 2>/dev/null; then
+                echo "Bucket $AWS_S3_BUCKET already exists."
+            else
+                echo "Bucket $AWS_S3_BUCKET does not exist. Creating..."
+                aws s3 mb "s3://$AWS_S3_BUCKET"
+            fi            
+        envFrom: 
+          - secretRef:
+              name: ${AWS_SECRET_NAME}
+      restartPolicy: Never    
+  backoffLimit: 4
