@@ -50,7 +50,7 @@ add-gpu-operator:
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
 
 .PHONY: setup-demo
-setup-demo: setup-namespace deploy-minio setup-odh-tec 
+setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner
 
 	@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
 	@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
