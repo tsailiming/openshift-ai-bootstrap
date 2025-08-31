@@ -52,8 +52,8 @@ add-gpu-operator:
 .PHONY: setup-demo
 setup-demo: setup-namespace deploy-minio setup-odh-tec 
 
-	@oc apply -f $(BASE)/yaml/demo/anythingllm.yaml
-	@oc apply -f $(BASE)/yaml/demo/llama-cpp.yaml
+	@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
+	@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
 
 .PHONY: teardown-namespace
 teardown-namespace:
