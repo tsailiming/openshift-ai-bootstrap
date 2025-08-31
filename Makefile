@@ -114,7 +114,7 @@ deploy-minio: teardown-minio
 	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
 	AWS_S3_ENDPOINT=$$(oc get route minio -n $(NAMESPACE) -o jsonpath='{.spec.host}') \
 	AWS_ENDPOINT_URL=$$(oc get route minio -n $(NAMESPACE) -o jsonpath='{.spec.host}') \
-		envsubst < $(BASE)/yaml/infra/data-connection.yaml.tmpl | oc create -n $(NAMESPACE) -f -	
+		envsubst < $(BASE)/yaml/infra/data-connection-s3.yaml.tmpl | oc create -n $(NAMESPACE) -f -	
 	
 	@$(BASE)/scripts/run-job.sh $(BASE)/yaml/infra/setup-s3.yaml.tmpl $(NAMESPACE) setup-s3-job aws-connection-my-storage
 	
