@@ -26,6 +26,7 @@ setup-rhoai: add-gpu-operator
 	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
 
 	oc apply -f ${BASE}/yaml/rhoai/group.yaml
+	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	
 .PHONY: add-nfs-provisioner
