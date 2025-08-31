@@ -14,7 +14,7 @@ fi
 oc delete job/${JOB_NAME} -n ${NAMESPACE}
 oc delete pvc/models-pvc -n ${NAMESPACE}
 
-envsubst '$MODEL_LIST' < ${BASE}/yaml/infra/download-models-s3.tmpl.yaml | oc create -n ${NAMESPACE} -f -
+envsubst '$MODEL_LIST' < ${BASE}/yaml/infra/download-models-s3.yaml.tmpl | oc create -n ${NAMESPACE} -f -
 
 echo "Waiting for job ${JOB_NAME} to complete..."
 
