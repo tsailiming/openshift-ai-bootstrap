@@ -28,9 +28,9 @@ setup-rhoai: add-gpu-operator
 	oc apply -f ${BASE}/yaml/rhoai/group.yaml
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	
-add-gpu-machineset:
-	@mkdir -p $(WORK_DIR)
-	@$(BASE)/scripts/add-gpu.sh $(WORK_DIR)	
+.PHONY: add-nfs-provisioner
+add-nfs-provisioner:
+	@$(BASE)/scripts/install-nfs-provisioner.sh
 
 .PHONY: add-gpu-operator
 add-gpu-operator:
