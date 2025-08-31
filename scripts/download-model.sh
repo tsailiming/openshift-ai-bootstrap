@@ -21,8 +21,12 @@ if [ "$MODE" = "s3" ]; then
 elif [ "$MODE" = "pvc" ]; then
   TEMPLATE="download-models-pvc.yaml.tmpl"
   JOB_NAME="${JOB_NAME}-pvc"
+else
+  echo "Invalid mode: $MODE (must be 's3' or 'pvc')"
+  exit 1
+fi
 
-  if ! oc get pvc models-pvc -n demo >/dev/null 2>&1; then
+if ! oc get pvc models-pvc -n demo >/dev/null 2>&1; then
     cat <<EOF | oc create -f -
   apiVersion: v1
   kind: PersistentVolumeClaim
@@ -31,27 +35,17 @@ elif [ "$MODE" = "pvc" ]; then
     namespace: demo
   spec:
     accessModes:
-      - ReadWriteOnce
+      - ReadWriteMany
     resources:
       requests:
-        storage: 100Gi
+        storage: 80Gi
+    storageClassName: managed-nfs-storage
+    volumeMode: Filesystem
 EOF
-
-else
-  echo "PVC models-pvc already exists in namespace demo. Skipping creation."
 fi
 
-else
-  echo "Invalid mode: $MODE (must be 's3' or 'pvc')"
-  exit 1
-fi
-
-# Cleanup old job (PVC is deleted only in s3 mode)
+# Cleanup old job
 oc delete job/${JOB_NAME} -n ${NAMESPACE} --ignore-not-found
-
-if [ "$MODE" = "s3" ]; then
-  oc delete pvc/models-pvc -n ${NAMESPACE} --ignore-not-found
-fi
 
 # Create job from template
 envsubst '$MODEL_LIST' < ${BASE}/yaml/infra/${TEMPLATE} | oc create -n ${NAMESPACE} -f -
@@ -67,10 +61,5 @@ until oc get job ${JOB_NAME} -n ${NAMESPACE} -o jsonpath='{.status.conditions[?(
     sleep 10
 done
 
-# Cleanup job (PVC is deleted only in s3 mode)
 oc delete job/${JOB_NAME} -n ${NAMESPACE}
-if [ "$MODE" = "s3" ]; then
-  oc delete pvc/models-pvc -n ${NAMESPACE}
-fi
-
 echo "Job ${JOB_NAME} completed successfully."
