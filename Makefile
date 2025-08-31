@@ -54,6 +54,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec
 
 	@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
 	@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
+	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
 
 .PHONY: teardown-namespace
 teardown-namespace:
