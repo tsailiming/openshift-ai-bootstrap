@@ -12,7 +12,6 @@ if [ -z "$NAME" ] || [ -z "$MODEL_PATH" ]; then
   exit 1
 fi
 
-
 oc delete isvc/$NAME -n ${NAMESPACE}
 oc delete servingruntime/$NAME -n ${NAMESPACE}
 
@@ -20,4 +19,4 @@ envsubst '$NAME, $MODEL_PATH' \
     < ${BASE}/yaml/demo/sr.yaml.tmpl | oc apply -n ${NAMESPACE} -f -
 
 envsubst '$NAME, $MODEL_PATH' \
-    < ${BASE}/yaml/demo/isvc.yaml.tmpl | oc apply -n ${NAMESPACE} -f -
+    < ${BASE}/yaml/demo/isvc-s3.yaml.tmpl | oc apply -n ${NAMESPACE} -f -
