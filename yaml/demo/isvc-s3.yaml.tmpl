@@ -7,7 +7,7 @@ metadata:
     openshift.io/display-name: $NAME
     serving.kserve.io/deploymentMode: RawDeployment
   name: $NAME  
-  labels:
+  labels:    
     opendatahub.io/dashboard: 'true'
 spec:
   predictor:
@@ -17,7 +17,7 @@ spec:
     model:
       args:
         - '--max-model-len'
-        - '2048'
+        - '8192'
       modelFormat:
         name: vLLM
       name: ''
