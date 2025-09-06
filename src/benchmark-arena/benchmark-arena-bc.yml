@@ -1,0 +1,29 @@
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: benchmark-arena  
+  namespace: demo
+  labels:
+    app: benchmark-arena  
+spec:  
+  output:
+    to:
+      kind: ImageStreamTag
+      name: 'benchmark-arena:latest'
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: 'httpd-24:latest'
+  source:
+    type: Git
+    git:
+      uri: 'https://github.com/mgoin/benchmark-arena.git'
+  triggers:  
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+  runPolicy: Serial
