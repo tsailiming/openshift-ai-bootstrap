@@ -1,0 +1,9 @@
+FROM registry.redhat.io/ubi9/python-312:latest
+
+RUN pip install --upgrade pip
+RUN pip install guidellm==0.3.0
+RUN pip install huggingface_hub
+
+RUN curl -L -o /opt/app-root/bin/jq \
+        https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64 && \
+    chmod 755 /opt/app-root/bin/jq
