@@ -7,7 +7,8 @@ metadata:
     openshift.io/display-name: $NAME
     serving.kserve.io/deploymentMode: RawDeployment
   name: $NAME  
-  labels:    
+  labels:
+    networking.kserve.io/visibility: exposed
     opendatahub.io/dashboard: 'true'
 spec:
   predictor:
