@@ -53,13 +53,13 @@ add-gpu-operator:
 .PHONY: setup-demo
 setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner
 
+	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
 	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
 	#@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
 	@oc apply -f $(BASE)/yaml/demo/guidellm.yaml
 	@oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml
-	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
+	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml
 	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
-	
 
 .PHONY: teardown-namespace
 teardown-namespace:
