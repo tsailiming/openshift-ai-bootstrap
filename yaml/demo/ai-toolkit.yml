@@ -1,0 +1,38 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ai-toolkit
+  namespace: demo
+  labels:
+    app: ai-toolkit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-toolkit
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ai-toolkit
+    spec:
+      volumes:
+        - name: models-pvc
+          persistentVolumeClaim:
+            claimName: models-pvc
+      containers:
+        - name: ai-toolkit
+          command:
+            - tail
+          imagePullPolicy: Always
+          envFrom: 
+          - secretRef:
+              name: aws-connection-my-storage
+          volumeMounts:
+            - name: models-pvc              
+              mountPath: /mnt/models
+          terminationMessagePolicy: File
+          image: quay.io/ltsai/ai-toolkit:latest
+          args:
+            - '-f'
+            - /dev/null
