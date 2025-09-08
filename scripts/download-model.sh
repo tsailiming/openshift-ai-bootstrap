@@ -26,24 +26,6 @@ else
   exit 1
 fi
 
-if ! oc get pvc models-pvc -n demo >/dev/null 2>&1; then
-    cat <<EOF | oc create -f -
-  apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    name: models-pvc
-    namespace: demo
-  spec:
-    accessModes:
-      - ReadWriteMany
-    resources:
-      requests:
-        storage: 80Gi
-    storageClassName: managed-nfs-storage
-    volumeMode: Filesystem
-EOF
-fi
-
 # Cleanup old job
 oc delete job/${JOB_NAME} -n ${NAMESPACE} --ignore-not-found
 
