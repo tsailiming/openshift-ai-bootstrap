@@ -28,7 +28,7 @@ setup-rhoai: add-gpu-operator
 	oc apply -f ${BASE}/yaml/rhoai/group.yaml
 	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
-	
+
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
 	@$(BASE)/scripts/install-nfs-provisioner.sh
@@ -60,7 +60,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner
 	@oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml
 	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml
 	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
-
+	
 .PHONY: teardown-namespace
 teardown-namespace:
 	-oc delete project $(NAMESPACE)
@@ -79,6 +79,10 @@ setup-odh-tec:
 	
 	@ODH_ROUTE=$$(oc get route odh-tec -n $(NAMESPACE) -o jsonpath='{.spec.host}') && \
 	echo "S3 Browser: $${ODH_ROUTE}"
+
+.PHONY: show-odh-tec
+show-odh-tec:
+	@ODH_ROUTE=$$(oc get route odh-tec -n $(NAMESPACE) -o jsonpath='{.spec.host}') && open https://$${ODH_ROUTE}
 
 .PHONY: teardown-odh-tec
 teardown-odh-tec:
