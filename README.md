@@ -1,6 +1,6 @@
 # Introduction
 
-This guide provides  walkthrough for setting up and using Red Hat OpenShift AI and Red Hat Inference Server for model deployment and inference. It covers environment requirements, GPU configurations, software dependencies, and practical examples for serving both full-weight and quantized models.
+This guide provides a walkthrough for setting up and using Red Hat OpenShift AI and Red Hat Inference Server for model deployment and inference. It covers environment requirements, GPU configurations, software dependencies, and practical examples for serving both full-weight and quantized models.
 
 Additionally, it demonstrates benchmarking, integration with OpenAI-compatible endpoints, enabling efficient multi-GPU model serving and evaluation.
 
@@ -264,23 +264,17 @@ This depends on the region, use case, and the availability of GPUs type.
 
 ### Topics
 
-### Demo
-
-| Topic | Description | Link |
-|-------|------------|------|
-| vLLM inference engine | Bring your own models from HuggingFace to vLLM | [Link](#vllm-inference-engine) |
-| vLLM inference engine | Access vLLM via an OpenAI-compatible API endpoint | [Link](#vllm-inference-engine) |
-| vLLM inference engine | Loading of HuggingFace models using 1 or more GPUs in a single server | [Link](#vllm-inference-engine) |
-| vLLM inference engine | Demonstrate that vLLM can be used for text-to-text and image-to-text tasks | [Link](#vllm-inference-engine) |
-| LLM Compressor | Compress a sample model and compare base LLM and optimized LLM via vLLM | [Link](#llm-compressor) |
-| LLM Compressor | Compare performance between the base LLM and optimized LLM via vLLM | [Link](#llm-compressor) |
-| LLM Compressor | Demonstrate benchmarking using GuideLLM or equivalent tools on vLLM | [Link](#llm-compressor) |
-| LLM Compressor | Support different context lengths in vLLM using available GPU memory | [Link](#llm-compressor) |
-| Whisper Speech-to-Text | Serve Whisper models and perform speech-to-text transcription | [Link](#whisper-speech-to-text) |
-| Multi-GPU Tensor Parallelism | Deploy models across multiple GPUs and observe scaling in vLLM | [Link](#multi-gpu-tensor-parallelism) |
-| OpenAI-compatible Integration | Configure Open WebUI to interact with models via OpenAI-compatible endpoints | [Link](#openai-compatible-integration) |
-| Context Length Adjustment | Adjust maximum sequence length and observe KV cache impact | [Link](#context-length-adjustment) |
-| Benchmarking with GuideLLM | Run benchmarks and compare LLM performance on different GPUs and quantizations | [Link](#benchmarking-with-guide-llm) |
+| Topic                       | Description                                         | Link                                                        |
+|-------------------------------|-----------------------------------------------------|------------------------------------------------------------|
+| vLLM inference engine         | Bring your own models from HuggingFace to vLLM     | [Link](#bring-your-own-model)                              |
+| vLLM inference engine         | Access vLLM via an OpenAI-compatible API endpoint  | [Link](#integration-using-an-openai-compatible-endpoint)  |
+| Whisper speech-to-text        | Transcribe audio using Whisper models              | [Link](#speech-to-text-using-whisper)                     |
+| Multi-GPU tensor parallelism  | Efficiently run models across multiple GPUs        | [Link](#using-multi-gpu-tensor-parallelism)               |
+| Context length tuning         | Adjust the model’s context window for longer inputs | [Link](#adjusting-context-length)                          |
+| GuideLLM benchmarking         | Measure model performance using GuideLLM           | [Link](#benchmarking-using-guidellm)                      |
+| Compressed model deployment   | Deploy optimized/compressed models for inference   | [Link](#deploying-compressed-model)                        |
+| Baseline vs compressed models | Compare performance between original and compressed models | [Link](#comparing-baseline-and-compressed-models)         |
+| LLM Compressor                | Compress large language models for efficient serving | [Link](#using-llm-compressor)                              |
 
 ### Bring-Your-Own-Model
 
@@ -661,7 +655,7 @@ qwen25-7b-instruct-fp8dynamic \
 RedHatAI/Qwen2.5-7B-Instruct-FP8-dynamic
 ```
 
-#### Comparing Baseline and Compressed Models
+### Comparing Baseline and Compressed Models
 
 * Obtain the benchmark arena endpoint
 
@@ -684,39 +678,7 @@ https://qwen25-7b-instruct-fp8dynamic-demo.apps.ocp-c6bsh.sandbox3014.opentlc.co
 
 ![benchmark-arena]](images/benchmark-arena.png)
 
-### Configure Open WebUI for Multiple Endpoints 
-
-* Add under User \-\> Settings \-\> Admin Settings:
-
-![images/openwebui-model-edit.png](images/openwebui-model-edit.png)
-
-* Or reset Open WebUI to read from the ConfigMap again
-
-Update ConfigMap:
-
-```yaml
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: openwebui-config
-  namespace: demo
-data:
-  OPENAI_API_BASE_URLS: 'http://qwen25-7b-instruct-fp8dynamic-predictor.demo.svc.cluster.local:8080/v1;http://qwen25-vl-7b-instruct-predictor.demo.svc.cluster.local:8080/v1;http://whisper-v3-fp8-dynamic-predictor.demo.svc.cluster.local:8080/v1'
-```
-
-Reset Open WebUI
-
-```bash
-OPEN_WEBUI=$(oc get pods -l app=open-webui -o custom-columns=NAME:.metadata.name --no-headers)
-
-oc rsh $OPEN_WEBUI rm -rf /app/backend/data/webui.db /app/backend/data/vector_db
-
-oc delete pod $OPEN_WEBUI
-```
-
-The various models will appear under the UI  
-
-![openwebui-model-edit.png](images/openwebui-model-edit.png)
+### Using LLM Compressor
 
 ## Appendix
 
@@ -755,3 +717,37 @@ spec:
    - Ingress
    - Egress
 ```
+
+### Configure Open WebUI for Multiple Endpoints
+
+* Add under User \-\> Settings \-\> Admin Settings:
+
+![images/openwebui-model-edit.png](images/openwebui-model-edit.png)
+
+* Or reset Open WebUI to read from the ConfigMap again
+
+Update ConfigMap:
+
+```yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: openwebui-config
+  namespace: demo
+data:
+  OPENAI_API_BASE_URLS: 'http://qwen25-7b-instruct-fp8dynamic-predictor.demo.svc.cluster.local:8080/v1;http://qwen25-vl-7b-instruct-predictor.demo.svc.cluster.local:8080/v1;http://whisper-v3-fp8-dynamic-predictor.demo.svc.cluster.local:8080/v1'
+```
+
+Reset Open WebUI
+
+```bash
+OPEN_WEBUI=$(oc get pods -l app=open-webui -o custom-columns=NAME:.metadata.name --no-headers)
+
+oc rsh $OPEN_WEBUI rm -rf /app/backend/data/webui.db /app/backend/data/vector_db
+
+oc delete pod $OPEN_WEBUI
+```
+
+The various models will appear under the UI  
+
+![openwebui-model-edit.png](images/openwebui-model-edit.png)
