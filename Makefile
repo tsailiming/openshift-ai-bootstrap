@@ -3,7 +3,7 @@ SHELL=/bin/sh
 NAMESPACE=demo
 
 .PHONY: setup-rhoai
-setup-rhoai: add-gpu-operator
+setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f $(BASE)/yaml/rhoai/authorino.yaml
 	oc apply -f $(BASE)/yaml/rhoai/serverless.yaml
 	oc apply -f $(BASE)/yaml/rhoai/servicemesh.yaml
@@ -51,7 +51,7 @@ add-gpu-operator:
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
 
 .PHONY: setup-demo
-setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner deploy-pipline
+setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
 	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
@@ -125,7 +125,7 @@ deploy-minio: teardown-minio
 	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
 	AWS_ENDPOINT_URL=minio.$(NAMESPACE).svc.cluster.local \
 		envsubst < $(BASE)/yaml/infra/data-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
-	
+		
 	@$(BASE)/scripts/run-job.sh $(BASE)/yaml/infra/setup-s3.yaml.tmpl $(NAMESPACE) setup-s3-job aws-connection-my-storage
 
 
