@@ -280,17 +280,18 @@ This depends on the region, use case, and the availability of GPUs type.
 
 ### Bring-Your-Own-Model
 
-* Download models to the following storage for model serving  
-  * S3 and PVC (This does not create a PVC data connection yet)
+Download models to the following storage for model serving.
+
+* S3. This also stores the model to the pvc `models-pvc`.
 
 ```bash
 scripts/download-model.sh s3 Qwen/Qwen2.5-VL-7B-Instruct
 ```
 
-* OCI. This creates the OCI data connection. (TBC)
+* PVC. Stores the model on `models-pvc`.
 
 ```bash
-scripts/download-model oci Qwen/Qwen2.5-VL-7B-Instruct
+scripts/download-model.sh pvc Qwen/Qwen2.5-VL-7B-Instruct
 ```
 
 * Deploy the models using KServe using S3 or PVC
