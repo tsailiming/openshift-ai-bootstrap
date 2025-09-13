@@ -28,6 +28,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f ${BASE}/yaml/rhoai/group.yaml
 	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
+	oc apply -f ${BASE}/yaml/rhoai/uwm.yaml
 
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
