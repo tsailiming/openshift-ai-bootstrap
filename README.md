@@ -79,6 +79,8 @@ The quantity of GPU depends on how many models to deploy concurrently.
 
 ## Environment Setup
 
+**Note:** This has not been tested against self-signed wildcard certs for `*.apps`.
+
 * Install OpenShift
 
 * Git clone setup scripts
@@ -434,7 +436,7 @@ Sun Aug 31 08:09:35 2025
 * Obtain the InferenceService name
 
 ```bash
-$ oc get isvc -o custom-columns=NAME:.metadata.name --no-headers
+$ oc get isvc -o custom-columns=NAME:.metadata.name --no-headers -n demo
 
 qwen25-7b-instruct
 qwen25-vl-7b-instruct
@@ -445,16 +447,15 @@ qwen25-vl-7b-instruct
 You can use multiple URLs by using the comma delimiter  
 [https://github.com/tsailiming/openshift-open-webui/blob/main/open-webui.yaml\#L21-L22](https://github.com/tsailiming/openshift-open-webui/blob/main/open-webui.yaml#L21-L22)
 
-If the model does not appear, you may have to configure it manually in the UI, or [reset](#4.7-configure-open-webui-for-multiple-endpoints) the configuration so it picks up the new endpoints. 
+If the model does not appear, you may have to configure it manually in the UI, or [reset](#configure-open-webui-for-multiple-endpoints) the configuration so it picks up the new endpoints.
 
 ```bash
 # scripts/update-model-open-webui.sh <isvc name>
-$ scripts/update-model-open-webui.sh qwen25-vl-7b-instruct
-
-Model URL: http://qwen25-vl-7b-instruct-predictor.demo.svc.cluster.local:8080/v1
-Model ID: qwen25-vl-7b-instruct
-Updating OpenWebUI ConfigMap...
-configmap/openwebui-config patched (no change)
+$ sh scripts/update-model-open-webui.sh qwen25-7b-instruct
+Model URL: http://qwen25-7b-instruct-predictor.demo.svc.cluster.local:8080/v1
+Model ID: qwen25-7b-instruct
+Updating ConfigMap with new model url
+configmap/openwebui-config patched
 Restarting OpenWebUI deployment...
 deployment.apps/open-webui restarted
 ```
