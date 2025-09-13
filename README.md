@@ -1,8 +1,15 @@
 # Introduction
 
-This guide provides  walkthrough for setting up and using Red Hat OpenShift AI and Red Hat Inference Serverfor model deployment and inference. It covers environment requirements, GPU configurations, software dependencies, and practical examples for serving both full-weight and quantized models.
+This guide provides  walkthrough for setting up and using Red Hat OpenShift AI and Red Hat Inference Server for model deployment and inference. It covers environment requirements, GPU configurations, software dependencies, and practical examples for serving both full-weight and quantized models.
 
 Additionally, it demonstrates benchmarking, integration with OpenAI-compatible endpoints, enabling efficient multi-GPU model serving and evaluation.
+
+## Important Disclaimer
+
+> IMPORTANT DISCLAIMER: Read before proceed!
+> 1. These examples are to showcase the capabilities of OpenShift AI.
+> 1. Certain components may not be supported if they are using upstream projects.
+> 1. Always check with Red Hat or your account team for supportability. 
 
 ## Chapters
 
@@ -25,14 +32,14 @@ Additionally, it demonstrates benchmarking, integration with OpenAI-compatible e
 
 | Type | Qty | vCPU | Memory (GB) | Disk (GB) |
 | :---- | :---- | :---- | :---- | :---- |
-| SNO | 1 | 32 | 64 |  |
+| SNO | 1 | 32 | 64 | 200 |
 
 ### OpenShift Cluster
 
 | Type | Qty | vCPU | Memory (GB) | Disk (GB) |
 | :---- | :---- | :---- | :---- | :---- |
 | Control plane | 1 | 8 | 16 | 200 |
-| Worker | 2 | 32 | 64 | 500 |
+| Worker | 2 | 32 | 64 | 200 |
 
 ### Nvidia GPU
 
@@ -59,14 +66,16 @@ The quantity of GPU depends on how many models to deploy concurrently.
 | ID | Software Description | Version |
 | :---- | :---- | :---- |
 | 1 | Internet/Proxy access to HF, quay.io and Red Hat registry | N/A |
-| 2 | Red Hat OpenShift Container Platform | Latest or currently supported version |
-| 3 | Red Hat OpenShift AI | Latest or currently supported version |
+| 2 | Red Hat OpenShift Container Platform | Tested on 4.19 |
+| 3 | Red Hat OpenShift AI | Tested on 2.23 |
 | 4 | Nvidia GPU Operator | Latest |
 | 5 | NFD Operator | Latest |
 
-### Storage
+### CSI Storage
 
-* CSI is available for RWO. NFS provisioner will be use to deploy RWX. 
+* CSI is available for RWO. NFS provisioner will be use to deploy RWX.
+* For SNO, addiitonal disk is required for logical volume manager.
+* Min 200GB
 
 ## Environment Setup
 
@@ -90,12 +99,16 @@ make setup-rhoai
 ### Demo Setup
 
 * Set up demo environment:
-  * Creates a demo namespace  
-  * Install and configure MinIO  
-  * Install and configure ODH tools (S3 browser/etc)  
-  * Configure data connection to MinIO  
-  * Install NFS provisioner (RWX)  
+  * Creates a demo namespace
+  * Install and configure MinIO
+  * Install and configure ODH tools (S3 browser/etc)
+  * Configure data connection to MinIO
+  * Install NFS provisioner (RWX)
   * Install Open WebUI and other tools
+  * Setup Data Science Pipeline
+
+  setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner deploy-pipline
+
 
 ```bash
 make demo
@@ -128,7 +141,8 @@ oc project demo
 | quay.io/ltsai/benchmark-arena:latest | Model comparison |
 | quay.io/modh/vllm@sha256:db766445a1e3455e1bf7d16b008f8946fcbe9f277377af7abb81ae358805e7e2 | RHOAI 2.23 vLLM for cuda |
 | quay.io/repository/ltsai/ai-toolkit:latest | Custom AI toolkit. |
-| quay.io/ltsai/openshift-nfs-server:latestk8s.gcr.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2 | NFS server and provisioner |
+| quay.io/ltsai/openshift-nfs-server:latest | NFS server and provisioner |
+| k8s.gcr.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2 NFS server and provisioner |
 
 #### Download Models
 
@@ -136,7 +150,8 @@ oc project demo
 
 ```bash
 pip3 install --upgrade huggingface_hub
-mkdir Qwen/Qwen2.5-VL-7B-Instruct $ hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir Qwen/Qwen2.5-VL-7B-Instruct 
+mkdir Qwen/Qwen2.5-VL-7B-Instruct 
+hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir Qwen/Qwen2.5-VL-7B-Instruct 
 ```
 
 * Package the models into a gzip tarball
@@ -249,16 +264,23 @@ This depends on the region, use case, and the availability of GPUs type.
 
 ### Topics
 
+### Demo
+
 | Topic | Description | Link |
 |-------|------------|------|
-| vLLM inference engine | Bring your own models from HuggingFace to vLLM | [Link](#bring-your-own-model) |
-|  | Access vLLM via an OpenAI-compatible API endpoint | [Link](#vllm-inference-engine) |
-|  | Loading of HuggingFace model using 1 or more GPUs in a single server | [Link](#vllm-inference-engine) |
-|  | Demonstrate that vLLM can be used for text-to-text and image-to-text tasks | [Link](#vllm-inference-engine) |
-| LLM Compressor | Compress a sample model. Compare base LLM and optimized LLM via vLLM using models from HuggingFace | [Link](#llm-compressor) |
-|  | Compare performance between the base LLM and optimized LLM via vLLM using HuggingFace models | [Link](#llm-compressor) |
-|  | Demonstrate benchmarking using Guide-LLM or equivalent tools on vLLM | [Link](#llm-compressor) |
-|  | Support different context lengths in vLLM using available GPU memory | [Link](#llm-compressor) |
+| vLLM inference engine | Bring your own models from HuggingFace to vLLM | [Link](#vllm-inference-engine) |
+| vLLM inference engine | Access vLLM via an OpenAI-compatible API endpoint | [Link](#vllm-inference-engine) |
+| vLLM inference engine | Loading of HuggingFace models using 1 or more GPUs in a single server | [Link](#vllm-inference-engine) |
+| vLLM inference engine | Demonstrate that vLLM can be used for text-to-text and image-to-text tasks | [Link](#vllm-inference-engine) |
+| LLM Compressor | Compress a sample model and compare base LLM and optimized LLM via vLLM | [Link](#llm-compressor) |
+| LLM Compressor | Compare performance between the base LLM and optimized LLM via vLLM | [Link](#llm-compressor) |
+| LLM Compressor | Demonstrate benchmarking using GuideLLM or equivalent tools on vLLM | [Link](#llm-compressor) |
+| LLM Compressor | Support different context lengths in vLLM using available GPU memory | [Link](#llm-compressor) |
+| Whisper Speech-to-Text | Serve Whisper models and perform speech-to-text transcription | [Link](#whisper-speech-to-text) |
+| Multi-GPU Tensor Parallelism | Deploy models across multiple GPUs and observe scaling in vLLM | [Link](#multi-gpu-tensor-parallelism) |
+| OpenAI-compatible Integration | Configure Open WebUI to interact with models via OpenAI-compatible endpoints | [Link](#openai-compatible-integration) |
+| Context Length Adjustment | Adjust maximum sequence length and observe KV cache impact | [Link](#context-length-adjustment) |
+| Benchmarking with GuideLLM | Run benchmarks and compare LLM performance on different GPUs and quantizations | [Link](#benchmarking-with-guide-llm) |
 
 ### Bring-Your-Own-Model
 
@@ -289,7 +311,7 @@ scripts/serve-model.sh qwen25-vl-7b-instruct Qwen/Qwen2.5-VL-7B-Instruct/
 * Observe the vLLM (kserve-container) logs
 
 ```bash
-$ oc logs -f qwen25-vl-7b-instruct-predictor-774fffcb5c-fnwnf
+$ oc logs -f qwen25-vl-7b-instruct-predictor-774fffcb5c-fnwnf
 Defaulted container "kserve-container" out of: kserve-container, storage-initializer (init)
 INFO 08-31 08:01:25 [__init__.py:244] Automatically detected platform cuda.
 INFO 08-31 08:01:29 [api_server.py:1413] vLLM API server version 0.9.0.1
@@ -532,14 +554,13 @@ oc patch isvc qwen25-vl-7b-instruct -n demo --type merge -p '{
 
 * Or manually edit the model in the OpenShift AI dashboard
 
+Assign 2 GPUs to the model:
+
 ![change-model-resource](images/change-model-resource.png)
 
-![edit-model-parmas](images/edit-model-params.png)
+Use `--tensor-parallel-size 2`
 
-```text
---max-model-len 8192
---tensor-parallel-size 2
-```
+![edit-model-parmas](images/edit-model-params.png)
 
 * Pod logs with 2 workers
 
