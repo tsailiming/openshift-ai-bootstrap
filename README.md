@@ -75,7 +75,7 @@ The quantity of GPU depends on how many models to deploy concurrently.
 
 * CSI is available for RWO. NFS provisioner will be use to deploy RWX.
 * For SNO, addiitonal disk is required for logical volume manager.
-* Min 200GB
+* Min 300GB
 
 ## Environment Setup
 
@@ -677,6 +677,39 @@ https://qwen25-7b-instruct-fp8dynamic-demo.apps.ocp-c6bsh.sandbox3014.opentlc.co
 ![benchmark-arena](images/benchmark-arena.png)
 
 ### Using LLM Compressor
+
+### Create a new workbench
+
+Under the `demo` data science project.
+
+* Use the `LLMCompressor` workbench image
+* Use the `Nvidia GPU` hardware profile. Change memory limits to 32GiB
+* Change storage to 50GiB
+* If necessary, add your `HF_TOKEN` token to the workbench
+
+![alt text](images/llmcompressor-workbench-1.png)
+
+![alt text](images/llmcompressor-workbench-2.png)
+
+![alt text](images/llmcompressor-workbench-3.png)
+
+![alt text](images/llmcompressor-workbench-4.png)
+
+
+#### Login to the workbench
+
+* Inside the workbench, clone the repository
+`https://github.com/tsailiming/openshift-ai-bootstrap.git`
+
+![alt text](images/llmcompressor-workbench-5.png)
+
+* Run `src/llm-compressor/llm-compressor-demo.ipynb`
+
+The notebook will run the model through W4A16 and GPTQ-W4A16 and evaluate using GSM-8K.
+
+![alt text](images/gsm-8k.png)
+
+![alt text](images/gsm-8k-recovery.png)
 
 ## Appendix
 
