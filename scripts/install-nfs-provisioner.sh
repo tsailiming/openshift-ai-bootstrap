@@ -22,7 +22,7 @@ cd "$TMPDIR/openshift-nfs-server"
 ./scripts/install.sh
 
 oc patch pvc nfs-server-nfs-server-0 -n nfs \
-  -p '{"spec":{"resources":{"requests":{"storage":"150Gi"}}}}'
+  -p '{"spec":{"resources":{"requests":{"storage":"100Gi"}}}}'
 
 # Set all storageclasses to false
 for sc in $(oc get storageclass -o name); do
