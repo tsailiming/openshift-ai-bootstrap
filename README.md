@@ -228,7 +228,7 @@ oc rsh $OPEN_WEBUI /usr/bin/mkdir -p \
 oc cp models--Systran--faster-whisper-base $OPEN_WEBUI:/app/backend/data/cache/whisper/models/
 ```
 
-* Restart the pod. You can also [reinit](#) the app.
+* Restart the pod. You can also [rest](#configure-open-webui-for-multiple-endpoints) Open WebUI.
 
 ```bash
 oc delete pod $OPEN_WEBUI
@@ -266,8 +266,8 @@ This depends on the region, use case, and the availability of GPUs type.
 
 | Topic                       | Description                                         | Link                                                        |
 |-------------------------------|-----------------------------------------------------|------------------------------------------------------------|
-| vLLM inference engine         | Bring your own models from HuggingFace to vLLM     | [Link](#bring-your-own-model)                              |
-| vLLM inference engine         | Access vLLM via an OpenAI-compatible API endpoint  | [Link](#integration-using-an-openai-compatible-endpoint)  |
+| vLLM inference engine         | Bring your own models from HuggingFace and serve using vLLM     | [Link](#bring-your-own-model)                              |
+| vLLM inference engine         | Access vLLM via an OpenAI-compatible API endpoint and chat using Open WebUI | [Link](#integration-using-an-openai-compatible-endpoint)  |
 | Whisper speech-to-text        | Transcribe audio using Whisper models              | [Link](#speech-to-text-using-whisper)                     |
 | Multi-GPU tensor parallelism  | Efficiently run models across multiple GPUs        | [Link](#using-multi-gpu-tensor-parallelism)               |
 | Context length tuning         | Adjust the model’s context window for longer inputs | [Link](#adjusting-context-length)                          |
@@ -299,6 +299,7 @@ scripts/download-model oci Qwen/Qwen2.5-VL-7B-Instruct
 ![odh-tech](images/odh-tech.png)
 
 ```bash
+# scripts/serve-model.sh <name> <model path>
 scripts/serve-model.sh qwen25-vl-7b-instruct Qwen/Qwen2.5-VL-7B-Instruct/
 ```
 
@@ -428,7 +429,7 @@ Sun Aug 31 08:09:35 2025
 +-----------------------------------------------------------------------------------------+
 ```
 
-### Integration using an OpenAI-compatible endpoint
+### Integration using OpenAI-compatible endpoint
 
 * Obtain the InferenceService name
 
@@ -447,6 +448,7 @@ You can use multiple URLs by using the comma delimiter
 If the model does not appear, you may have to configure it manually in the UI, or [reset](#4.7-configure-open-webui-for-multiple-endpoints) the configuration so it picks up the new endpoints. 
 
 ```bash
+# scripts/update-model-open-webui.sh <isvc name>
 $ scripts/update-model-open-webui.sh qwen25-vl-7b-instruct
 
 Model URL: http://qwen25-vl-7b-instruct-predictor.demo.svc.cluster.local:8080/v1
@@ -473,7 +475,7 @@ metadata:
   namespace: demo
 ```
 
-* Chat with the model. Access it via the route:
+* Chat with the model using the route
 
 ```bash
 $ echo "https://$(oc get route open-webui -o jsonpath='{.spec.host}')"
@@ -510,9 +512,11 @@ inferenceservice.serving.kserve.io/whisper-v3-fp8-dynamic created
 scripts/update-model-open-webui.sh whisper-v3-fp8-dynamic
 ```
 
-* Switch to the Whisper mode
+* Switch to the Whisper model
 
 ![openwebui-model-list](images/openwebui-model-list.png)
+
+Note: If the Whisper model is not shown, you can add it manually or just [reset](#configure-open-webui-for-multiple-endpoints) Open WebUI
 
 * Perform Speech-to-Text using Open WebUI
 
@@ -551,10 +555,6 @@ oc patch isvc qwen25-vl-7b-instruct -n demo --type merge -p '{
 Assign 2 GPUs to the model:
 
 ![change-model-resource](images/change-model-resource.png)
-
-Use `--tensor-parallel-size 2`
-
-![edit-model-parmas](images/edit-model-params.png)
 
 * Pod logs with 2 workers
 
@@ -605,11 +605,9 @@ Sun Aug 31 14:52:22 2025
 
 ### Adjusting Context Length
 
-```text
---max-model-len 8192
-```
+Use `--tensor-parallel-size 2`
 
-![edit-context-length](images/edit-model-params.png)
+![edit-model-parmas](images/edit-model-params.png)
 
 ### Benchmarking using GuideLLM
 
@@ -620,7 +618,7 @@ $ GUIDELLM=$(oc get pod -l app=guidellm -o custom-columns=NAME:.metadata.name --
 
 $ oc rsh $GUIDELLM
 
-$ rm -rf /opt/app-root/src/.cache
+$ rm -rf /opt/app-root/src/.cache
 $ export TARGET=http://qwen25-7b-instruct-fp8dynamic-predictor.demo.svc.cluster.local:8080 
 $ export MODEL=qwen25-7b-instruct-fp8dynamic
 
@@ -676,7 +674,7 @@ https://qwen25-7b-instruct-fp8dynamic-demo.apps.ocp-c6bsh.sandbox3014.opentlc.co
 
 ![benchmark-arena-model-endpoint](images/benchmark-arena-model-endpoint.png)
 
-![benchmark-arena]](images/benchmark-arena.png)
+![benchmark-arena](images/benchmark-arena.png)
 
 ### Using LLM Compressor
 
@@ -738,7 +736,7 @@ data:
   OPENAI_API_BASE_URLS: 'http://qwen25-7b-instruct-fp8dynamic-predictor.demo.svc.cluster.local:8080/v1;http://qwen25-vl-7b-instruct-predictor.demo.svc.cluster.local:8080/v1;http://whisper-v3-fp8-dynamic-predictor.demo.svc.cluster.local:8080/v1'
 ```
 
-Reset Open WebUI
+* Reset Open WebUI
 
 ```bash
 OPEN_WEBUI=$(oc get pods -l app=open-webui -o custom-columns=NAME:.metadata.name --no-headers)
