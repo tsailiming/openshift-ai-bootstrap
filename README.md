@@ -680,7 +680,9 @@ https://qwen25-7b-instruct-fp8dynamic-demo.apps.ocp-c6bsh.sandbox3014.opentlc.co
 
 ### Create a new workbench
 
-Under the `demo` data science project.
+Under the `demo` data science project, create a new workbench.
+
+![alt text](images/workbench.png)
 
 * Use the `LLMCompressor` workbench image
 * Use the `Nvidia GPU` hardware profile. Change memory limits to 32GiB
