@@ -1,0 +1,487 @@
+# PIPELINE DEFINITION
+# Name: llmcompressor-oneshot
+# Description: A demo pipeline to showcase how multiple recipes can be applied to a given model, followed by an eval step
+# Inputs:
+#    dataset_id: str [Default: 'HuggingFaceH4/ultrachat_200k']
+#    dataset_split: str [Default: 'train_sft']
+#    model_id: str [Default: 'meta-llama/Llama-3.2-3B-Instruct']
+components:
+  comp-eval-model:
+    executorLabel: exec-eval-model
+    inputDefinitions:
+      artifacts:
+        input_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        batch_size:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        limit:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        model:
+          defaultValue: vllm
+          isOptional: true
+          parameterType: STRING
+        model_args:
+          defaultValue:
+            add_bos_token: true
+            device: auto
+            dtype: bfloat16
+            gpu_memory_utilization: 0.8
+            max_model_len: 4096.0
+          isOptional: true
+          parameterType: STRUCT
+        num_fewshot:
+          defaultValue: 5.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        tasks:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-eval-model-2:
+    executorLabel: exec-eval-model-2
+    inputDefinitions:
+      artifacts:
+        input_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+      parameters:
+        batch_size:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        limit:
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        model:
+          defaultValue: vllm
+          isOptional: true
+          parameterType: STRING
+        model_args:
+          defaultValue:
+            add_bos_token: true
+            device: auto
+            dtype: bfloat16
+            gpu_memory_utilization: 0.8
+            max_model_len: 4096.0
+          isOptional: true
+          parameterType: STRUCT
+        num_fewshot:
+          defaultValue: 5.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        tasks:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-run-oneshot-calibrated:
+    executorLabel: exec-run-oneshot-calibrated
+    inputDefinitions:
+      parameters:
+        dataset_id:
+          parameterType: STRING
+        dataset_split:
+          parameterType: STRING
+        max_sequence_length:
+          defaultValue: 2048.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        model_id:
+          parameterType: STRING
+        num_calibration_samples:
+          defaultValue: 512.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        recipe:
+          parameterType: STRING
+        seed:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        output_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+  comp-run-oneshot-datafree:
+    executorLabel: exec-run-oneshot-datafree
+    inputDefinitions:
+      parameters:
+        model_id:
+          parameterType: STRING
+        recipe:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_model:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-eval-model:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - eval_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.12.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef eval_model(\n    input_model: dsl.Input[dsl.Artifact],\n    tasks:\
+          \ List[str],\n    model: str = \"vllm\",\n    model_args: dict = {\n   \
+          \     \"add_bos_token\": True,\n        \"dtype\": \"bfloat16\",\n     \
+          \   \"device\": \"auto\",\n        \"max_model_len\": 4096,\n        \"\
+          gpu_memory_utilization\": 0.8,\n    },\n    limit: Optional[int] = None,\n\
+          \    num_fewshot: int = 5,\n    batch_size: Optional[int] = None,\n) ->\
+          \ str:\n    import lm_eval\n    from lm_eval.utils import make_table\n\n\
+          \    model_args[\"pretrained\"] = input_model.path\n\n    results = lm_eval.simple_evaluate(\n\
+          \        model=model,\n        model_args=model_args,\n        limit=limit,\n\
+          \        tasks=tasks,\n        num_fewshot=num_fewshot,\n        batch_size=batch_size\
+          \ or \"auto\",\n    )\n    print(\"lm_eval finished:\\n\", make_table(results))\n\
+          \    return make_table(results)\n\n"
+        image: quay.io/opendatahub/llmcompressor-pipeline-runtime:main
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+            resourceType: nvidia.com/gpu
+            type: nvidia.com/gpu
+          cpuLimit: 3.0
+          cpuRequest: 2.0
+          memoryLimit: 10.0
+          memoryRequest: 4.0
+          resourceCpuLimit: 3000m
+          resourceCpuRequest: 2000m
+          resourceMemoryLimit: 10G
+          resourceMemoryRequest: 4G
+    exec-eval-model-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - eval_model
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.12.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef eval_model(\n    input_model: dsl.Input[dsl.Artifact],\n    tasks:\
+          \ List[str],\n    model: str = \"vllm\",\n    model_args: dict = {\n   \
+          \     \"add_bos_token\": True,\n        \"dtype\": \"bfloat16\",\n     \
+          \   \"device\": \"auto\",\n        \"max_model_len\": 4096,\n        \"\
+          gpu_memory_utilization\": 0.8,\n    },\n    limit: Optional[int] = None,\n\
+          \    num_fewshot: int = 5,\n    batch_size: Optional[int] = None,\n) ->\
+          \ str:\n    import lm_eval\n    from lm_eval.utils import make_table\n\n\
+          \    model_args[\"pretrained\"] = input_model.path\n\n    results = lm_eval.simple_evaluate(\n\
+          \        model=model,\n        model_args=model_args,\n        limit=limit,\n\
+          \        tasks=tasks,\n        num_fewshot=num_fewshot,\n        batch_size=batch_size\
+          \ or \"auto\",\n    )\n    print(\"lm_eval finished:\\n\", make_table(results))\n\
+          \    return make_table(results)\n\n"
+        image: quay.io/opendatahub/llmcompressor-pipeline-runtime:main
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+            resourceType: nvidia.com/gpu
+            type: nvidia.com/gpu
+          cpuLimit: 3.0
+          cpuRequest: 2.0
+          memoryLimit: 10.0
+          memoryRequest: 4.0
+          resourceCpuLimit: 3000m
+          resourceCpuRequest: 2000m
+          resourceMemoryLimit: 10G
+          resourceMemoryRequest: 4G
+    exec-run-oneshot-calibrated:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - run_oneshot_calibrated
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.12.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef run_oneshot_calibrated(\n    model_id: str,\n    recipe: str,\n\
+          \    dataset_id: str,\n    dataset_split: str,\n    output_model: dsl.Output[dsl.Artifact],\n\
+          \    num_calibration_samples: int = 512,\n    max_sequence_length: int =\
+          \ 2048,\n    seed: int = 42,\n):\n    from datasets import load_dataset\n\
+          \    from transformers import AutoTokenizer, AutoModelForCausalLM\n    from\
+          \ llmcompressor import oneshot\n\n    # Load dataset.\n    ds = load_dataset(dataset_id,\
+          \ split=dataset_split)\n    ds = ds.shuffle(seed=seed).select(range(num_calibration_samples))\n\
+          \n    # Preprocess the data into the format the model is trained with.\n\
+          \    tokenizer = AutoTokenizer.from_pretrained(model_id)\n\n    def preprocess(example):\n\
+          \        return {\n            \"text\": tokenizer.apply_chat_template(\n\
+          \                example[\"messages\"],\n                tokenize=False,\n\
+          \            )\n        }\n\n    ds = ds.map(preprocess)\n\n    # Tokenize\
+          \ the data (be careful with bos tokens - we need add_special_tokens=False\
+          \ since the chat_template already added it).\n    def tokenize(sample):\n\
+          \        return tokenizer(\n            sample[\"text\"],\n            padding=False,\n\
+          \            max_length=max_sequence_length,\n            truncation=True,\n\
+          \            add_special_tokens=False,\n        )\n\n    ds = ds.map(tokenize,\
+          \ remove_columns=ds.column_names)\n\n    model = AutoModelForCausalLM.from_pretrained(\n\
+          \        model_id, device_map=\"auto\", torch_dtype=\"auto\"\n    )\n  \
+          \  tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)\n\
+          \n    model = oneshot(\n        model=model,\n        dataset=ds,\n    \
+          \    recipe=recipe,\n        tokenizer=tokenizer,\n        max_seq_length=max_sequence_length,\n\
+          \        num_calibration_samples=num_calibration_samples,\n    )\n\n   \
+          \ model.save_pretrained(output_model.path)\n    tokenizer.save_pretrained(output_model.path)\n\
+          \n    return\n\n"
+        image: quay.io/opendatahub/llmcompressor-pipeline-runtime:main
+        resources:
+          accelerator:
+            count: '1'
+            resourceCount: '1'
+            resourceType: nvidia.com/gpu
+            type: nvidia.com/gpu
+          cpuLimit: 3.0
+          cpuRequest: 2.0
+          memoryLimit: 24.0
+          memoryRequest: 12.0
+          resourceCpuLimit: 3000m
+          resourceCpuRequest: 2000m
+          resourceMemoryLimit: 24G
+          resourceMemoryRequest: 12G
+    exec-run-oneshot-datafree:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - run_oneshot_datafree
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.12.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef run_oneshot_datafree(\n    model_id: str, recipe: str, output_model:\
+          \ dsl.Output[dsl.Artifact]\n):\n    from transformers import AutoModelForCausalLM,\
+          \ AutoTokenizer\n\n    from llmcompressor import oneshot\n\n    model =\
+          \ AutoModelForCausalLM.from_pretrained(\n        model_id, device_map=\"\
+          auto\", torch_dtype=\"auto\"\n    )\n    tokenizer = AutoTokenizer.from_pretrained(model_id,\
+          \ trust_remote_code=True)\n\n    model = oneshot(model=model, recipe=recipe,\
+          \ tokenizer=tokenizer)\n\n    model.save_pretrained(output_model.path)\n\
+          \    tokenizer.save_pretrained(output_model.path)\n\n    return\n\n"
+        image: quay.io/opendatahub/llmcompressor-pipeline-runtime:main
+        resources:
+          cpuLimit: 3.0
+          cpuRequest: 2.0
+          memoryLimit: 10.0
+          memoryRequest: 4.0
+          resourceCpuLimit: 3000m
+          resourceCpuRequest: 2000m
+          resourceMemoryLimit: 10G
+          resourceMemoryRequest: 4G
+pipelineInfo:
+  description: A demo pipeline to showcase how multiple recipes can be applied to
+    a given model, followed by an eval step
+  name: llmcompressor-oneshot
+root:
+  dag:
+    tasks:
+      eval-model:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-eval-model
+        dependentTasks:
+        - run-oneshot-datafree
+        inputs:
+          artifacts:
+            input_model:
+              taskOutputArtifact:
+                outputArtifactKey: output_model
+                producerTask: run-oneshot-datafree
+          parameters:
+            tasks:
+              runtimeValue:
+                constant:
+                - gsm8k
+        taskInfo:
+          name: eval-model
+      eval-model-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-eval-model-2
+        dependentTasks:
+        - run-oneshot-calibrated
+        inputs:
+          artifacts:
+            input_model:
+              taskOutputArtifact:
+                outputArtifactKey: output_model
+                producerTask: run-oneshot-calibrated
+          parameters:
+            tasks:
+              runtimeValue:
+                constant:
+                - gsm8k
+        taskInfo:
+          name: eval-model-2
+      run-oneshot-calibrated:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-run-oneshot-calibrated
+        inputs:
+          parameters:
+            dataset_id:
+              componentInputParameter: dataset_id
+            dataset_split:
+              componentInputParameter: dataset_split
+            model_id:
+              componentInputParameter: model_id
+            recipe:
+              runtimeValue:
+                constant: "\n        quant_stage:\n            quant_modifiers:\n\
+                  \                GPTQModifier:\n                    ignore: [\"\
+                  lm_head\"]\n                    targets: [\"Linear\"]\n        \
+                  \            scheme: \"W4A16\"\n        "
+        taskInfo:
+          name: run-oneshot-calibrated
+      run-oneshot-datafree:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-run-oneshot-datafree
+        inputs:
+          parameters:
+            model_id:
+              componentInputParameter: model_id
+            recipe:
+              runtimeValue:
+                constant: "\n        quant_stage:\n            quant_modifiers:\n\
+                  \                QuantizationModifier:\n                    ignore:\
+                  \ [\"lm_head\"]\n                    targets: [\"Linear\"]\n   \
+                  \                 scheme: \"W4A16\"\n        "
+        taskInfo:
+          name: run-oneshot-datafree
+  inputDefinitions:
+    parameters:
+      dataset_id:
+        defaultValue: HuggingFaceH4/ultrachat_200k
+        isOptional: true
+        parameterType: STRING
+      dataset_split:
+        defaultValue: train_sft
+        isOptional: true
+        parameterType: STRING
+      model_id:
+        defaultValue: meta-llama/Llama-3.2-3B-Instruct
+        isOptional: true
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.12.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-eval-model:
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Equal
+            value: NVIDIA-A10G-SHARED
+        exec-eval-model-2:
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Equal
+            value: NVIDIA-A10G-SHARED
+        exec-run-oneshot-calibrated:
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: HF_TOKEN
+              secretKey: HF_TOKEN
+            secretName: hf-hub-secret
+            secretNameParameter:
+              runtimeValue:
+                constant: hf-hub-secret
+          tolerations:
+          - effect: NoSchedule
+            key: nvidia.com/gpu
+            operator: Equal
+            value: NVIDIA-A10G-SHARED
+        exec-run-oneshot-datafree:
+          secretAsEnv:
+          - keyToEnv:
+            - envVar: HF_TOKEN
+              secretKey: HF_TOKEN
+            secretName: hf-hub-secret
+            secretNameParameter:
+              runtimeValue:
+                constant: hf-hub-secret
