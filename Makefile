@@ -51,7 +51,7 @@ add-gpu-operator:
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
 
 .PHONY: setup-demo
-setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner
+setup-demo: setup-namespace deploy-minio setup-odh-tec add-nfs-provisioner deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
 	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
@@ -124,6 +124,26 @@ deploy-minio: teardown-minio
 	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
 	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
 	AWS_ENDPOINT_URL=minio.$(NAMESPACE).svc.cluster.local \
-		envsubst < $(BASE)/yaml/infra/data-connection-s3.yaml.tmpl | oc create -n $(NAMESPACE) -f -	
+		envsubst < $(BASE)/yaml/infra/data-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
 	
 	@$(BASE)/scripts/run-job.sh $(BASE)/yaml/infra/setup-s3.yaml.tmpl $(NAMESPACE) setup-s3-job aws-connection-my-storage
+
+
+.PHONY: teardown-pipeline
+teardown-pipeline: 
+	-oc delete -f $(BASE)/yaml/infra/dashboard-dspa-secret.yaml -n $(NAMESPACE)
+	-oc delete -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
+
+.PHONY: deploy-pipeline
+deploy-pipline: teardown-pipeline	
+	@AWS_ACCESS_KEY_ID=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_USER -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64 ) \
+	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
+	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
+	AWS_ENDPOINT_URL=minio.$(NAMESPACE).svc.cluster.local \
+		envsubst < $(BASE)/yaml/infra/pipeline-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
+
+	@oc apply -f $(BASE)/yaml/infra/dashboard-dspa-secret.yaml -n $(NAMESPACE)
+	@oc apply -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
+
+
+	

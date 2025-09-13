@@ -1,0 +1,47 @@
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
+kind: DataSciencePipelinesApplication
+metadata:
+  name: dspa
+  namespace: demo  
+spec:
+  apiServer:
+    caBundleFileMountPath: ''
+    caBundleFileName: ''
+    deploy: true
+    artifactSignedURLExpirySeconds: 60
+    enableSamplePipeline: false
+    managedPipelines:
+      instructLab:
+        state: Removed
+    enableOauth: true
+    cacheEnabled: true
+    pipelineStore: database
+  database:
+    disableHealthCheck: false
+    mariaDB:
+      deploy: true
+      pipelineDBName: mlpipeline
+      pvcSize: 10Gi
+      username: mlpipeline
+  dspVersion: v2
+  objectStorage:
+    disableHealthCheck: false
+    enableExternalRoute: false
+    externalStorage:
+      basePath: ''
+      bucket: pipeline
+      host: 'minio.demo.svc.cluster.local:9000'
+      port: ''
+      region: us-east-1
+      s3CredentialsSecret:
+        accessKey: AWS_ACCESS_KEY_ID
+        secretKey: AWS_SECRET_ACCESS_KEY
+        secretName: dashboard-dspa-secret
+      scheme: http
+  persistenceAgent:
+    deploy: true
+    numWorkers: 2
+  podToPodTLS: true
+  scheduledWorkflow:
+    cronScheduleTimezone: UTC
+    deploy: true
