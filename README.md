@@ -293,16 +293,15 @@ scripts/download-model.sh s3 Qwen/Qwen2.5-VL-7B-Instruct
 scripts/download-model oci Qwen/Qwen2.5-VL-7B-Instruct
 ```
 
-* Deploy the models using KServe  
-  * S3  
-    * Give a name. InferenceService name must consist of lower case alphanumeric characters or '-', and must start with alphabetical character. (e.g. "my-name" or "abc-123", regex used for validation is '\[a-z\](\[-a-z0-9\]\*\[a-z0-9\])?')  
-    * Model path in S3. You can find this in odh-tech using “Copy Path” to copy the path into your clipboard. 
+* Deploy the models using KServe using S3 or PVC
+* Give a name. InferenceService name must consist of lower case alphanumeric characters or '-', and must start with alphabetical character. (e.g. "my-name" or "abc-123", regex used for validation is '\[a-z\](\[-a-z0-9\]\*\[a-z0-9\])?')  
+* For S3 model path, you can find this in odh-tech using “Copy Path” to copy the path into your clipboard. 
 
 ![odh-tech](images/odh-tech.png)
 
 ```bash
-# scripts/serve-model.sh <name> <model path>
-scripts/serve-model.sh qwen25-vl-7b-instruct Qwen/Qwen2.5-VL-7B-Instruct/
+# scripts/serve-model.sh <s3|pvc> <name> <model path>
+scripts/serve-model.sh s3 qwen25-vl-7b-instruct Qwen/Qwen2.5-VL-7B-Instruct/
 ```
 
 * Observe the vLLM (kserve-container) logs
