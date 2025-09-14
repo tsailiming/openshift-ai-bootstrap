@@ -1,0 +1,36 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: guidellm
+  namespace: demo
+  labels:
+    app: guidellm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guidellm
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: guidellm
+    spec:
+      volumes:
+        - name: models-pvc
+          persistentVolumeClaim:
+            claimName: models-pvc
+      containers:
+        - name: guidellm
+          command:
+            - tail
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: models-pvc
+              readOnly: true
+              mountPath: /mnt/models
+          terminationMessagePolicy: File
+          image: quay.io/ltsai/guidellm:0.3.0
+          args:
+            - '-f'
+            - /dev/null

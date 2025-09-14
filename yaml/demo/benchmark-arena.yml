@@ -1,0 +1,23 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: benchmark-arena  
+  namespace: demo
+  labels:
+    app: benchmark-arena    
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      deployment: benchmark-arena
+  template:
+    metadata:
+      labels:
+        deployment: benchmark-arena      
+    spec:
+      containers:
+        - name: benchmark-arena
+          image: quay.io/ltsai/benchmark-arena:latest
+          ports:
+            - containerPort: 8080
+              protocol: TCP            

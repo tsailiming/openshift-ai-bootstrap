@@ -1,0 +1,129 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-models-s3
+spec:
+  template:
+    metadata:
+      name: download-models-s3
+    spec:
+      volumes:
+        - name: models-storage
+          persistentVolumeClaim:
+            claimName: models-pvc
+      containers:
+      - name: download-models-s3
+        image: registry.redhat.io/ubi9/python-312
+        command: ["/bin/bash", "-c"]
+        args:
+          - |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+
+            mkdir -p aws-cli
+            mkdir -p bin
+
+            ./aws/install -i /opt/app-root/src/aws-cli -b /opt/app-root/src/bin            
+
+            until curl --silent --head --fail http://minio:9000/minio/health/live; do
+                echo "Waiting for MinIO to be ready..."
+                sleep 5
+            done
+            
+            # Check if the bucket exists before creating it
+            if ! bin/aws s3 ls s3://models; then
+              echo "Creating models bucket..."
+              bin/aws s3 mb s3://models
+            else
+              echo "models already exists."
+            fi                      
+
+            pip3 install --upgrade huggingface_hub
+            
+            download_hf_model() {
+              # Check if a repository name was provided.
+              if [ -z "$1" ]; then
+                echo "Error: No repository name provided."
+                echo "Usage: download_hf_model <repo_name>"
+                return 1
+              fi
+
+              # The full name of the repository from Hugging Face (e.g., "Qwen/Qwen2.5-7B-Instruct").
+              local repo_name="$1"
+
+              # The base directory where all models will be stored.
+              local base_dir="/mnt/models"
+
+              # The full path to the local directory for the model.
+              local local_dir="$base_dir/$repo_name"
+
+              local s3_bucket="s3://models"
+              local s3_model_path="$s3_bucket/$repo_name/"
+
+              # 1. Check if the model already exists in the S3 bucket.
+              # We use `aws s3 ls` and check its exit code. If the path exists, it returns 0.
+              echo "Checking if model '$repo_name' already exists at '$s3_model_path'..."
+              bin/aws s3 ls "$s3_model_path" > /dev/null 2>&1
+              
+              if [ $? -eq 0 ]; then
+                echo "Model '$repo_name' already exists in S3. Skipping."
+                return 0
+              fi
+
+              echo "Model not found in S3. Proceeding with download..."
+              
+              # 1. Create the directory.
+              # The "-p" flag ensures that parent directories are created if they don't exist.
+              echo "Creating directory: $local_dir"
+              mkdir -p "$local_dir"
+
+              # Check if mkdir was successful.
+              if [ $? -ne 0 ]; then
+                echo "Error: Failed to create directory."
+                return 1
+              fi
+
+              # 2. Download the model using hf download.
+              echo "Downloading model '$repo_name' to '$local_dir'..."
+              hf download "$repo_name" --local-dir "$local_dir" || exit 1
+              rm -rf "$local_dir/.cache"
+
+              # Check if the download was successful.
+              if [ $? -eq 0 ]; then
+                echo "Model download completed successfully!"
+              else
+                echo "Error: Model download failed."
+                return 1
+              fi
+            }
+            
+            for model in $MODELS; do
+              download_hf_model $model
+            done
+
+            # download_hf_model "Qwen/Qwen2.5-7B-Instruct"
+            # download_hf_model "Qwen/Qwen2.5-VL-7B-Instruct"
+
+            bin/aws s3 sync /mnt/models s3://models
+
+            # Check if the upload was successful.
+            if [ $? -eq 0 ]; then
+              echo "S3 sync completed successfully!"
+              rm -rf "$local_dir"
+            else
+              echo "Error: S3 sync failed."
+              return 1
+            fi
+        env:
+          - name: MODELS
+            value: "${MODEL_LIST}"
+          - name: HF_TOKEN
+            value: "${HF_TOKEN}"
+        envFrom: 
+          - secretRef:
+              name: aws-connection-my-storage
+        volumeMounts:
+          - name: models-storage
+            mountPath: "/mnt/models"
+      restartPolicy: Never    
+  backoffLimit: 3
