@@ -6,7 +6,7 @@ RUN pip install --upgrade huggingface_hub
 # Set working directory
 WORKDIR /tmp
 
-RUN curl -L -o openshift-client.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.19/openshift-client-linux-amd64-rhel9-4.19.9.tar.gz && \
+RUN curl -L -o openshift-client.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.19/openshift-client-linux.tar.gz && \
     tar -xzf openshift-client.tar.gz && \
     cp oc kubectl /opt/app-root/bin/ && \
     chmod 755 /opt/app-root/bin/oc /opt/app-root/bin/kubectl
@@ -15,6 +15,10 @@ RUN curl -L -o /opt/app-root/bin/jq \
     https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64 && \
     chmod 755 /opt/app-root/bin/jq
     
+RUN curl -L -o /opt/app-root/bin/mc \
+    https://dl.min.io/client/mc/release/linux-amd64/mc && \
+    chmod 755 /opt/app-root/bin/mc
+
 USER root
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
