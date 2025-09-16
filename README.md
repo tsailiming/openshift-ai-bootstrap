@@ -78,7 +78,7 @@ This demo has been done on AWS using:
 * g6.12xlarge: x4 Nvidia L4
 * g6e.12xlarge: x4 Nvidia L40S
 
-On AWS, you can run `scripts/add-gpu-machineset.sh` to add GPU worker nodes. This will add a new `machineset` for the given aws instance type.
+On AWS, you can run `scripts/add-gpu-machineset.sh` to add GPU worker nodes. This will add a new `machineset` for the given aws instance type. Be aware that not all AZ has the GPU instance type.
 
 ```bash
 $ scripts/add-gpu-machineset.sh
