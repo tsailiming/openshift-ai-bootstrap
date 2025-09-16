@@ -846,3 +846,11 @@ oc delete pod $OPEN_WEBUI
 The various models will appear under the UI  
 
 ![openwebui-model-edit.png](images/openwebui-model-edit.png)
+
+### AWS GPU Instance Type
+
+**Note:** Pricing may not be accurate.
+
+![alt text](images/ec2-x1-h100-p5.4xlarge.png)
+
+![alt text](images/ec2-x8-a100-p4d-24xlarge.png)
