@@ -777,6 +777,8 @@ The notebook will run the model through W4A16 and GPTQ-W4A16 compression and eva
 
 ![alt text](images/gsm-8k-recovery.png)
 
+Here are some[examples](https://github.com/vllm-project/llm-compressor/tree/main/examples) for quantizing models.
+
 ## Appendix
 
 ### Network Policy to Simulate AirGapp Environment
