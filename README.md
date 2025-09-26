@@ -81,22 +81,23 @@ This demo has been done on AWS using:
 On AWS, you can run `scripts/add-gpu-machineset.sh` to add GPU worker nodes. This will add a new `machineset` for the given aws instance type. Be aware that not all AZ has the GPU instance type.
 
 ```bash
-$ scripts/add-gpu-machineset.sh
-Usage: scripts/add-gpu-machineset.sh [--list] | <old_machineset> <new_instance_type> [--dry-run]
+scripts/add-gpu-machineset.sh ocp-c6bsh-bxjl2-worker-ap-northeast-1c p4d.24xlarge --help
+Usage: scripts/add-gpu-machineset.sh [--list] | <old_machineset> <new_instance_type> [--dry-run] [--on-demand]
 
 Options:
   --list             Show all current MachineSets in openshift-machine-api and exit
   --dry-run          Optional flag to print YAML without applying it
+  --on-demand        Use on-demand instances instead of spot
   --help, -h         Show this help message
 
-Clone an OpenShift MachineSet to a new instance type, automatically
-appending GPU count and type as suffix to the MachineSet name, and
-producing a clean YAML with replicas=0.
+Clone an OpenShift MachineSet to a new instance type. By default, the new MachineSet
+will use spot instances unless --on-demand is specified. The generated MachineSet will
+always have replicas=0 and a name suffix based on GPU count and type.
 
 Examples:
   scripts/add-gpu-machineset.sh --list
   scripts/add-gpu-machineset.sh ocp-c6bsh-bxjl2-worker-ap-northeast-1a g6.4xlarge --dry-run
-  scripts/add-gpu-machineset.sh ocp-c6bsh-bxjl2-worker-ap-northeast-1a p4d.24xlarge
+  scripts/add-gpu-machineset.sh ocp-c6bsh-bxjl2-worker-ap-northeast-1a p4d.24xlarge --on-demand
 ```
 
 ### Software
