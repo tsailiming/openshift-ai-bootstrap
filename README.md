@@ -55,8 +55,8 @@ Additionally, it demonstrates benchmarking, integration with OpenAI-compatible e
 
 | GPU Model | INT4 | FP8 | FP16 | BF16 |
 | :---- | :---- | :---- | :---- | :---- |
-| L4 | Supported | No native support | Supported | Supported |
-| L20 | Supported | No native support | Supported | Supported |
+| L4 | Supported | Supported | Supported | Supported |
+| L20 | Supported | Supported | Supported | Supported |
 | L40s | Supported | Supported | Supported | Supported |
 | A100 | Supported | Supported | Supported | Supported |
 | H20 | Supported | Supported | Supported | Supported |
