@@ -10,13 +10,13 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@until oc get DSCInitialization/default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
-		echo "Waiting for DSCI to be ready..."; \
+		echo "Waiting for DSCInitialization to be ready..."; \
 		sleep 10; \
 	done
 	
 	oc apply -f ${BASE}/yaml/rhoai/rhoai-cr.yaml	
 	@until oc get DataScienceCluster/default-dsc -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep -q "True"; do \
-		echo "Waiting for DS to be ready..."; \
+		echo "Waiting for DataScienceCluster to be ready..."; \
 		sleep 10; \
 	done
 
