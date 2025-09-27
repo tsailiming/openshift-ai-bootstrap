@@ -57,7 +57,7 @@ add-gpu-operator:
 setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
-	@oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml
+	@oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml	                    
 	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
 	#@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
 	@oc apply -f $(BASE)/yaml/demo/guidellm.yaml
