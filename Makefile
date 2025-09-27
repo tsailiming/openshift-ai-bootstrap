@@ -40,6 +40,7 @@ add-gpu-operator:
 
 	@until oc get crd nodefeaturediscoveries.nfd.openshift.io >/dev/null 2>&1; do \
     	echo "Wait until CRD nodefeaturediscoveries.nfd.openshift.io is ready..."; \
+		sleep 10; \
 	done
 
 	oc apply -f $(BASE)/yaml/rhoai/nfd-cr.yaml
@@ -47,6 +48,7 @@ add-gpu-operator:
 
 	@until oc get crd clusterpolicies.nvidia.com>/dev/null 2>&1; do \
     	echo "Wait until CRD clusterpolicies.nvidia.com is ready..."; \
+		sleep 10; \
 	done
 
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
