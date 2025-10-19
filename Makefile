@@ -20,6 +20,12 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 		sleep 10; \
 	done
 
+  @echo "Set RHOAI operator to be upgraded manually instead of automatic"
+	@oc patch subscription rhods-operator \
+    -n redhat-ods-operator \
+    --type=merge \
+    -p '{"spec": {"installPlanApproval": "Manual"}}'
+
 	oc apply -f ${BASE}/yaml/rhoai/odhdashboardconfig.yaml
 
 	oc delete pods -l app=rhods-dashboard -n redhat-ods-applications
