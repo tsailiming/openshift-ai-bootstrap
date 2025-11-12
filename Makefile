@@ -150,10 +150,7 @@ deploy-pipline: teardown-pipeline
 	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
 	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
 	AWS_ENDPOINT_URL=minio.$(NAMESPACE).svc.cluster.local \
-		envsubst < $(BASE)/yaml/infra/pipeline-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
+	  envsubst < $(BASE)/yaml/infra/pipeline-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
 
 	@oc apply -f $(BASE)/yaml/infra/dashboard-dspa-secret.yaml -n $(NAMESPACE)
 	@oc apply -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
-
-
-	
