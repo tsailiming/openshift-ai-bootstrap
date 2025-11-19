@@ -81,7 +81,18 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml
 	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
 	@oc set env deploy/open-webui ENABLE_PERSISTENT_CONFIG=False -n ${NAMESPACE}
-	
+
+.PHONY: download-models
+download-models:
+	@echo "Downloading Qwen/Qwen3-VL-8B-Instruct"
+	@$(BASE)/scripts/download-model.sh s3 Qwen/Qwen3-VL-8B-Instruct
+
+	@echo "Downloading openai/gpt-oss-20b"
+	@$(BASE)/scripts/download-model.sh s3 openai/gpt-oss-20b
+
+	@echo "Downloading RedHatAI/whisper-large-v3-turbo-FP8-dynamic"
+	@$(BASE)/scripts/download-model.sh s3 RedHatAI/whisper-large-v3-turbo-FP8-dynamic
+
 .PHONY: teardown-namespace
 teardown-namespace:
 	-oc delete project $(NAMESPACE)
