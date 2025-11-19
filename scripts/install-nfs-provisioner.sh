@@ -1,6 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
+echo "Checking if project 'nfs' already exists..."
+if oc get namespace "nfs" >/dev/null 2>&1; then
+    echo "Project 'nfs' already exists. Nothing to do. Exiting."
+    exit 0
+fi
+
 echo "Creating temp dir..."
 TMPDIR=$(mktemp -d)
 echo "Using temp dir: $TMPDIR"
@@ -15,6 +21,12 @@ for sc in $(oc get storageclass -o name); do
         break
     fi
 done
+
+# Ensure a default StorageClass was found
+if [[ -z "$DEFAULT_SC" ]]; then
+    echo "ERROR: No default StorageClass found. Please set one."
+    exit 1
+fi
 
 # Clone repo and run install
 git clone https://github.com/tsailiming/openshift-nfs-server "$TMPDIR/openshift-nfs-server"

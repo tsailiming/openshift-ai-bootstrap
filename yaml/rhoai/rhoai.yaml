@@ -17,7 +17,7 @@ metadata:
   name: rhods-operator
   namespace: redhat-ods-operator
 spec:
-  channel: fast
+  channel: fast-3.x
   installPlanApproval: Automatic
   name: rhods-operator
   source: redhat-operators

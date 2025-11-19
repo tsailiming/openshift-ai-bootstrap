@@ -1,51 +1,43 @@
-apiVersion: datasciencecluster.opendatahub.io/v1
+apiVersion: datasciencecluster.opendatahub.io/v2
 kind: DataScienceCluster
 metadata:
-  name: default-dsc
+  creationTimestamp: '2025-11-19T14:48:49Z'
+  generation: 1
   labels:
-    app.kubernetes.io/created-by: rhods-operator
-    app.kubernetes.io/instance: default-dsc
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: datasciencecluster
-    app.kubernetes.io/part-of: rhods-operator
+  name: default-dsc  
 spec:
   components:
-    codeflare:
-      managementState: Managed
     kserve:
+      managementState: Managed
       nim:
         managementState: Managed
       rawDeploymentServiceConfig: Headless
-      defaultDeploymentMode: RawDeployment
-      #serving:
-      #  ingressGateway:
-      #    certificate:
-      #      type: OpenshiftDefaultIngress
-      #  managementState: Managed
-      #  name: knative-serving
-      managementState: Managed
     modelregistry:
-      registriesNamespace: rhoai-model-registries
       managementState: Managed
+      registriesNamespace: rhoai-model-registries
     feastoperator:
       managementState: Removed
     trustyai:
+      eval:
+        lmeval:
+          permitCodeExecution: deny
+          permitOnline: deny
+      managementState: Managed
+    aipipelines:
       managementState: Managed
     ray:
       managementState: Managed
     kueue:
-      managementState: Managed
+      defaultClusterQueueName: default
+      defaultLocalQueueName: default
+      managementState: Removed
     workbenches:
-      workbenchNamespace: rhods-notebooks
       managementState: Managed
+      workbenchNamespace: rhods-notebooks
     dashboard:
       managementState: Managed
-    modelmeshserving:
-      managementState: Removed
     llamastackoperator:
-      managementState: Removed
-    datasciencepipelines:
       managementState: Managed
     trainingoperator:
-      managementState: Managed
       managementState: Managed

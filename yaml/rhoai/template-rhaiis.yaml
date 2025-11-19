@@ -7,7 +7,7 @@ metadata:
     opendatahub.io/dashboard: 'true'
   annotations:
     opendatahub.io/apiProtocol: REST
-    opendatahub.io/modelServingSupport: '["single"]'
+    opendatahub.io/modelServingSupport: '["single"]'    
 objects:
   - apiVersion: serving.kserve.io/v1alpha1
     kind: ServingRuntime
@@ -23,7 +23,7 @@ objects:
     spec:
       annotations:
         prometheus.io/path: /metrics
-        prometheus.io/port: '8080'
+        prometheus.io/port: '8080'        
       containers:
         - args:
             - '--port=8080'
@@ -36,7 +36,7 @@ objects:
           env:
             - name: HF_HOME
               value: /tmp/hf_home
-          image: 'registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.3'          
+          image: 'registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.4'
           name: kserve-container
           ports:
             - containerPort: 8080
