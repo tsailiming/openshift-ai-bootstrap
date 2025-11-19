@@ -4,10 +4,20 @@ NAMESPACE=demo
 
 .PHONY: setup-rhoai
 setup-rhoai: add-gpu-operator add-nfs-provisioner
-	oc apply -f $(BASE)/yaml/rhoai/authorino.yaml
-	oc apply -f $(BASE)/yaml/rhoai/serverless.yaml
-	oc apply -f $(BASE)/yaml/rhoai/servicemesh.yaml
+	oc apply -f $(BASE)/yaml/rhoai/kueue.yaml
 	
+	@until oc get crd kueues.kueue.openshift.io >/dev/null 2>&1; do \
+    	echo "Wait until CRD kueues.kueue.openshift.io is ready..."; \
+		sleep 10; \
+	done
+
+	@echo "Set Red Hat build of Kueue operator to be upgraded manually instead of automatic"
+	@oc patch subscription kueue-operator \
+    -n openshift-kueue-operator \
+    --type=merge \
+    -p '{"spec": {"installPlanApproval": "Manual"}}'
+
+
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@until oc get DSCInitialization/default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
 		echo "Waiting for DSCInitialization to be ready..."; \
@@ -20,7 +30,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 		sleep 10; \
 	done
 
-  @echo "Set RHOAI operator to be upgraded manually instead of automatic"
+	@echo "Set RHOAI operator to be upgraded manually instead of automatic"
 	@oc patch subscription rhods-operator \
     -n redhat-ods-operator \
     --type=merge \
@@ -31,7 +41,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc delete pods -l app=rhods-dashboard -n redhat-ods-applications
 	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
 
-	oc apply -f ${BASE}/yaml/rhoai/group.yaml
+	#oc apply -f ${BASE}/yaml/rhoai/group.yaml
 	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/uwm.yaml
