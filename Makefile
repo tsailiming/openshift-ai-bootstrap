@@ -82,6 +82,11 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
 	@oc set env deploy/open-webui ENABLE_PERSISTENT_CONFIG=False -n ${NAMESPACE}
 
+	@oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
+
+	oc delete pods -l app=rhods-dashboard -n redhat-ods-applications
+	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
+
 .PHONY: download-models
 download-models:
 	@echo "Downloading Qwen/Qwen3-VL-8B-Instruct"
