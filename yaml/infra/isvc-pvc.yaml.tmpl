@@ -6,10 +6,12 @@ metadata:
     opendatahub.io/hardware-profile-namespace: redhat-ods-applications
     openshift.io/display-name: $NAME
     serving.kserve.io/deploymentMode: RawDeployment
+    opendatahub.io/model-type: generative
   name: $NAME  
   labels:    
     networking.kserve.io/visibility: exposed
     opendatahub.io/dashboard: 'true'
+    opendatahub.io/genai-asset: "true"
 spec:
   predictor:
     automountServiceAccountToken: false
