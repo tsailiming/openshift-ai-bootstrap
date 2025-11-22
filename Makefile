@@ -102,6 +102,7 @@ setup-ai-playground:
 	@oc apply -f $(BASE)/yaml/demo/llama-stack-cm.yaml -n ${NAMESPACE}
 	@oc apply -f $(BASE)/yaml/demo/lsd.yaml -n ${NAMESPACE}
 
+ 	oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
 	oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}
 
 .PHONY: download-models

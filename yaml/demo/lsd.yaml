@@ -3,36 +3,38 @@ kind: LlamaStackDistribution
 metadata:
   annotations:
     openshift.io/display-name: lsd-genai-playground
-  name: lsd-genai-playground  
-  namespace: demo
   labels:
-    opendatahub.io/dashboard: 'true'
+    opendatahub.io/dashboard: "true"
+  name: lsd-genai-playground
+  namespace: demo  
 spec:
   replicas: 1
   server:
     containerSpec:
       command:
-        - /bin/sh
-        - '-c'
-        - llama stack run /etc/llama-stack/run.yaml
+      - /bin/sh
+      - -c
+      - llama stack run /etc/llama-stack/run.yaml
       env:
-        - name: VLLM_TLS_VERIFY
-          value: 'false'
-        - name: MILVUS_DB_PATH
-          value: ~/.llama/milvus.db
-        - name: FMS_ORCHESTRATOR_URL
-          value: 'http://localhost'
-        - name: VLLM_MAX_TOKENS
-          value: '4096'
-        - name: VLLM_API_TOKEN_1
-          value: fake
-        - name: LLAMA_STACK_CONFIG_DIR
-          value: /opt/app-root/src/.llama/distributions/rh/
+      - name: VLLM_TLS_VERIFY
+        value: "false"
+      - name: MILVUS_DB_PATH
+        value: ~/.llama/milvus.db
+      - name: FMS_ORCHESTRATOR_URL
+        value: http://localhost
+      - name: VLLM_MAX_TOKENS
+        value: "4096"
+      - name: VLLM_API_TOKEN_1
+        value: fake
+      - name: VLLM_API_TOKEN_2
+        value: fake
+      - name: LLAMA_STACK_CONFIG_DIR
+        value: /opt/app-root/src/.llama/distributions/rh/
       name: llama-stack
       port: 8321
       resources:
         limits:
-          cpu: '2'
+          cpu: "4"
           memory: 12Gi
         requests:
           cpu: 250m

@@ -119,4 +119,4 @@ metadata:
     llamastack.io/distribution: lsd-genai-playground
     opendatahub.io/dashboard: "true"
   name: llama-stack-config
-  namespace: demo  
+  namespace: demo
