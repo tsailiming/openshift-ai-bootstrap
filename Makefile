@@ -73,12 +73,12 @@ add-gpu-operator:
 setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
-	@oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml	                    
-	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml
+	@oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml
+	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml 
 	#@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
-	@oc apply -f $(BASE)/yaml/demo/guidellm.yaml
-	@oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml
-	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml
+	@oc apply -f $(BASE)/yaml/demo/guidellm.yaml  -n ${NAMESPACE}
+	@oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml -n ${NAMESPACE}
+	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml -n ${NAMESPACE}
 	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
 	@oc set env deploy/open-webui ENABLE_PERSISTENT_CONFIG=False -n ${NAMESPACE}
 
