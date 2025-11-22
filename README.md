@@ -798,17 +798,18 @@ make setup-ai-playground
 ```
 
 The target will perform the following steps:
-1. Download and serve `llama-32-3b-instruct` and `Qwen3-30B-A3B-Thinking-2507-FP8`
-1. Configure tool calling
-2. Deploy MCP Servers for kubernetes and weather forecasting
-3. Setup Llama Stack in the `demo` namespace
 
-Once deployment is done, you can access the AI playground the OpenShift AI dashboard.
+1. Download and serve `llama-32-3b-instruct` and `Qwen3-30B-A3B-Thinking-2507-FP8`.
+1. Configure tool calling.
+1. Deploy MCP Servers for kubernetes and weather forecasting.
+1. Setup Llama Stack in the `demo` namespace.
+
+Once deployment is done, you can access the AI playground from the OpenShift AI dashboard.
 
 ![alt text](images/ai-playground.png)
 
+Enabling MCP Servers:
 
-Enabling MCP Servers
 1. Select the MCP server(s) you want to use from the list (e.g., kubernetes-mcp-server or mcp-weather).
 1. Click on the lock icon :lock: next to the MCP server name. The icon will unlock and turn green, indicating the server is now enabled.
 1. Once enabled, the LLM can query these MCP servers to fetch external data or perform actions in real time. For example, the LLM can call mcp-weather to get current temperature data or kubernetes-mcp-server to list pods, deployments, or other resources.
