@@ -6,17 +6,13 @@ NAMESPACE=demo
 setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f $(BASE)/yaml/rhoai/kueue.yaml
 	
-	@until oc get crd kueues.kueue.openshift.io >/dev/null 2>&1; do \
-    	echo "Wait until CRD kueues.kueue.openshift.io is ready..."; \
-		sleep 10; \
-	done
-
+	@$(BASE)/scripts/check-operator-install-status.sh kueue-operator openshift-kueue-operator
+	
 	@echo "Set Red Hat build of Kueue operator to be upgraded manually instead of automatic"
 	@oc patch subscription kueue-operator \
     -n openshift-kueue-operator \
     --type=merge \
     -p '{"spec": {"installPlanApproval": "Manual"}}'
-
 
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@until oc get DSCInitialization/default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
@@ -54,18 +50,12 @@ add-nfs-provisioner:
 add-gpu-operator:
 	oc apply -f $(BASE)/yaml/rhoai/nfd.yaml
 
-	@until oc get crd nodefeaturediscoveries.nfd.openshift.io >/dev/null 2>&1; do \
-    	echo "Wait until CRD nodefeaturediscoveries.nfd.openshift.io is ready..."; \
-		sleep 10; \
-	done
-
+	@$(BASE)/scripts/check-operator-install-status.sh nfd openshift-nfd
+	
 	oc apply -f $(BASE)/yaml/rhoai/nfd-cr.yaml
 	oc apply -f $(BASE)/yaml/rhoai/nvidia.yaml
 
-	@until oc get crd clusterpolicies.nvidia.com>/dev/null 2>&1; do \
-    	echo "Wait until CRD clusterpolicies.nvidia.com is ready..."; \
-		sleep 10; \
-	done
+	@$(BASE)/scripts/check-operator-install-status.sh gpu-operator-certified nvidia-gpu-operator
 
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
 
