@@ -90,7 +90,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 .PHONY: setup-ai-playground
 setup-ai-playground:
 	@echo "Serving llama-32-3b-instruct"
-	@$(BASE)scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
+	@$(BASE)/scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
 	
 	@echo "Downloading and deploying Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
 	@$(BASE)/scripts/download-model.sh s3 Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
