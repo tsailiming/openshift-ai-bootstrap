@@ -1,0 +1,17 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+ name: gen-ai-aa-mcp-servers
+ namespace: redhat-ods-applications
+data:
+  kubernetes-mcp-server: |
+    {
+      "url": "http://kubernetes-mcp-server.demo.svc.cluster.local/mcp",
+      "description": "A powerful and flexible Kubernetes Model Context Protocol (MCP) server implementation with support for Kubernetes and OpenShift."
+    }
+  mcp-weather: |
+    {
+      "url": "http://mcp-weather.demo.svc.cluster.local/sse",
+      "description": "Weather forecast with MCP.",
+      "transport": "sse"
+    }

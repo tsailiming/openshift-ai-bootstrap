@@ -53,6 +53,8 @@ yq eval '
 if [ "$MODE" = "pvc" ]; then
   echo "Using PVC for model storage"
   
+  oc delete secret/model-pvc-${NAME} -n ${NAMESPACE} --ignore-not-found
+
   yq eval '
   .metadata.name = "model-pvc-" + env(NAME) |
   .metadata.annotations."openshift.io/display-name" = "model-pvc-" + env(NAME) |
@@ -72,6 +74,8 @@ if [ "$MODE" = "pvc" ]; then
 elif [ "$MODE" = "oci" ]; then
   echo "Using OCI for model storage"
     
+  oc delete secret/${NAME} -n ${NAMESPACE} --ignore-not-found  
+  
   yq eval '
   .metadata.annotations."openshift.io/display-name" = env(NAME) |
   .metadata.name = env(NAME) |
