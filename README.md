@@ -296,10 +296,6 @@ oc delete pod $OPEN_WEBUI
 | AI Playground                 | Experiment with LLM, MCP and RAG in the AI playgound | [Link](#ai-playground)                              |
 | Distributed Inference with llm-d | Efficiently run and scale llms across multiple GPUs |[Link](#distributed-inference-with-llm-d) |
 
-
-
-
-
 ### Model Catalog
 
 The OpenShift AI Model Catalog enables data scientists to easily discover and evaluate a wide range of AI models that are ready for their organization. Users can search for models from multiple providers, assess their suitability, and then register them in a model registry for deployment and customization. This streamlined process helps data scientists efficiently identify and utilize the best models for their use cases.
@@ -909,13 +905,67 @@ Afer RAG:
 
 Distributed Inference with llm-d is a Kubernetes-native, open-source framework designed for serving large language models (LLMs) at scale. You can use Distributed Inference with llm-d to simplify the deployment of generative AI, focusing on high performance and cost-effectiveness across various hardware accelerators.
 
-Examples:
+To setup llm-d:
+
+``` bash
+make setup-llmd
+```
+
+To deploy `openai/gpt-oss-20b` using `LLMInferenceService` with the following configurations:
+
+* Model: openai/gpt-oss-20b using ModelCar
+* Replicas: 2
+* GPU per replica: 1
+* Scheduler: Default with prefix cache routing
+
+``` bash
+oc apply -f yaml/demo/llmisvc-gpt-oss-20b.yaml
+```
+
+![alt text](images/llmd-1.png)
+
+``` bash
+curl -k "$(oc get llmisvc llmd-gpt-oss-20b -n demo -o jsonpath='{.status.addresses[0].url}')"/v1/models | jq  
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "openai/gpt-oss-20b",
+      "object": "model",
+      "created": 1763917221,
+      "owned_by": "vllm",
+      "root": "/mnt/models",
+      "parent": null,
+      "max_model_len": 131072,
+      "permission": [
+        {
+          "id": "modelperm-772dd72788de4e2f8afd8ad8499ac052",
+          "object": "model_permission",
+          "created": 1763917221,
+          "allow_create_engine": false,
+          "allow_sampling": true,
+          "allow_logprobs": true,
+          "allow_search_indices": false,
+          "allow_view": true,
+          "allow_fine_tuning": false,
+          "organization": "*",
+          "group": null,
+          "is_blocking": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+More examples:
 
 1. Single-node GPU [deployment](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/single-node-gpu/README.md): Use single-GPU-per-replica deployment patterns for development, testing, or production deployments of smaller models, such as 7-billion-parameter models.
 
 1. Multi-node deployment: For examples using multi-node deployments, see DeepSeek-R1 multi-node deployment [examples](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/dp-ep/deepseek-r1-gpu-rdma-roce/README.md).
 
 1. Intelligent inference scheduler with KV cache routing [deployment](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/precise-prefix-kv-cache-routing/README.md): You can configure the scheduler to track key-value (KV) cache blocks across inference endpoints and route requests to the endpoint with the highest cache hit rate. This configuration improves throughput and reduces latency by maximizing cache reuse.
+
 
 ## Appendix
 

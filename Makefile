@@ -42,6 +42,71 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/uwm.yaml
 
+.PHONY: setup-llmd
+setup-llmd:
+	# https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.0/html/deploying_models/deploying_models#deploying-models-using-distributed-inference_rhoai-user
+	@CLUSTER_DOMAIN=$$(oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.status.domain}')  2>/dev/null \
+		envsubst < $(BASE)/yaml/rhoai/gateway.yaml.tmpl | oc apply -f -
+	oc apply -f $(BASE)/yaml/rhoai/lws.yaml
+
+	@$(BASE)/scripts/check-operator-install-status.sh leader-worker-set openshift-lws-operator 
+	@echo "Set LeaderWorkerSet operator to be upgraded manually instead of automatic"
+	@oc patch subscription leader-worker-set \
+    -n openshift-lws-operator   \
+    --type=merge \
+    -p '{"spec": {"installPlanApproval": "Manual"}}'
+
+	oc apply -f $(BASE)/yaml/rhoai/lws-cr.yaml
+
+	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
+
+	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
+	@$(BASE)/scripts/check-operator-install-status.sh authorino-operator-stable-redhat-operators-openshift-marketplace openshift-operators
+	@$(BASE)/scripts/check-operator-install-status.sh dns-operator-stable-redhat-operators-openshift-marketplace openshift-operators
+	@$(BASE)/scripts/check-operator-install-status.sh limitador-operator-stable-redhat-operators-openshift-marketplace openshift-operators
+
+	@echo "Set Red Hat Connectivity Link operator to be upgraded manually instead of automatic"
+	@oc patch subscription rhcl-operator \
+    -n openshift-operators   \
+    --type=merge \
+    -p '{"spec": {"installPlanApproval": "Manual"}}'
+
+	@echo "Set Authorino operator to be upgraded manually instead of automatic"
+	@oc patch subscription authorino-operator-stable-redhat-operators-openshift-marketplace \
+    -n openshift-operators   \
+    --type=merge \
+    -p '{"spec": {"installPlanApproval": "Manual"}}'
+
+	@echo "Set DNS operator to be upgraded manually instead of automatic"
+	@oc patch subscription dns-operator-stable-redhat-operators-openshift-marketplace \
+		-n openshift-operators \
+		--type=merge \
+		-p '{"spec": {"installPlanApproval": "Manual"}}'
+
+	@echo "Set Limitador operator to be upgraded manually instead of automatic"
+	@oc patch subscription limitador-operator-stable-redhat-operators-openshift-marketplace \
+		-n openshift-operators \
+		--type=merge \
+		-p '{"spec": {"installPlanApproval": "Manual"}}'
+		
+	oc apply -f $(BASE)/yaml/rhoai/kuadrant-cr.yaml
+	oc wait Kuadrant -n kuadrant-system kuadrant --for=condition=Ready --timeout=10m
+
+	oc annotate svc/authorino-authorino-authorization service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert -n kuadrant-system
+
+	@until oc get secret/authorino-server-cert -n kuadrant-system >/dev/null 2>&1; do \
+    	echo "Wait until secret/authorino-server-cert is ready..."; \
+		sleep 10; \
+	done	
+	
+	oc apply -f $(BASE)/yaml/rhoai/authorino.yaml
+	oc wait --for=condition=ready pod -l authorino-resource=authorino -n kuadrant-system --timeout 150s
+
+	oc delete pod -n redhat-ods-applications -l app=odh-model-controller
+	oc delete pod -n redhat-ods-applications -l control-plane=kserve-controller-manager
+	oc wait --for=condition=ready pod -n redhat-ods-applications -l app=odh-model-controller --timeout 150s
+	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
+
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
 	@$(BASE)/scripts/install-nfs-provisioner.sh
