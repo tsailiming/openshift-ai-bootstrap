@@ -74,8 +74,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
 
-	oc delete pods -l app=rhods-dashboard -n redhat-ods-applications
-	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
+ 	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
 .PHONY: setup-ai-playground
 setup-ai-playground:

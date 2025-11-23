@@ -18,6 +18,190 @@ data:
   sample-catalog.yaml: |-
     source: Hugging Face
     models:
+    - name: openai/gpt-oss-120b
+      description: OpenAI's new gpt-oss models offer fast, low-cost, open-weight reasoning performance, strong tool use, customizability, and enterprise-ready safety for on-premise AI.
+      readme: |-
+        <p align="center">
+          <img alt="gpt-oss-20b" src="https://raw.githubusercontent.com/openai/gpt-oss/main/docs/gpt-oss-20b.svg">
+        </p>
+
+        <p align="center">
+          <a href="https://gpt-oss.com"><strong>Try gpt-oss</strong></a> ·
+          <a href="https://cookbook.openai.com/topic/gpt-oss"><strong>Guides</strong></a> ·
+          <a href="https://arxiv.org/abs/2508.10925"><strong>Model card</strong></a> ·
+          <a href="https://openai.com/index/introducing-gpt-oss/"><strong>OpenAI blog</strong></a>
+        </p>
+
+        <br>
+
+        Welcome to the gpt-oss series, [OpenAI’s open-weight models](https://openai.com/open-models) designed for powerful reasoning, agentic tasks, and versatile developer use cases.
+
+        We’re releasing two flavors of these open models:
+        - `gpt-oss-120b` — for production, general purpose, high reasoning use cases that fit into a single 80GB GPU (like NVIDIA H100 or AMD MI300X) (117B parameters with 5.1B active parameters)
+        - `gpt-oss-20b` — for lower latency, and local or specialized use cases (21B parameters with 3.6B active parameters)
+
+        Both models were trained on our [harmony response format](https://github.com/openai/harmony) and should only be used with the harmony format as it will not work correctly otherwise.
+
+
+        > [!NOTE]
+        > This model card is dedicated to the smaller `gpt-oss-20b` model. Check out [`gpt-oss-120b`](https://huggingface.co/openai/gpt-oss-120b) for the larger model.
+
+        # Highlights
+
+        * **Permissive Apache 2.0 license:** Build freely without copyleft restrictions or patent risk—ideal for experimentation, customization, and commercial deployment.  
+        * **Configurable reasoning effort:** Easily adjust the reasoning effort (low, medium, high) based on your specific use case and latency needs.  
+        * **Full chain-of-thought:** Gain complete access to the model’s reasoning process, facilitating easier debugging and increased trust in outputs. It’s not intended to be shown to end users.  
+        * **Fine-tunable:** Fully customize models to your specific use case through parameter fine-tuning.
+        * **Agentic capabilities:** Use the models’ native capabilities for function calling, [web browsing](https://github.com/openai/gpt-oss/tree/main?tab=readme-ov-file#browser), [Python code execution](https://github.com/openai/gpt-oss/tree/main?tab=readme-ov-file#python), and Structured Outputs.
+        * **MXFP4 quantization:** The models were post-trained with MXFP4 quantization of the MoE weights, making `gpt-oss-120b` run on a single 80GB GPU (like NVIDIA H100 or AMD MI300X) and the `gpt-oss-20b` model run within 16GB of memory. All evals were performed with the same MXFP4 quantization.
+
+        ---
+
+        # Inference examples
+
+        ## Transformers
+
+        You can use `gpt-oss-120b` and `gpt-oss-20b` with Transformers. If you use the Transformers chat template, it will automatically apply the [harmony response format](https://github.com/openai/harmony). If you use `model.generate` directly, you need to apply the harmony format manually using the chat template or use our [openai-harmony](https://github.com/openai/harmony) package.
+
+        To get started, install the necessary dependencies to setup your environment:
+
+        ```
+        pip install -U transformers kernels torch 
+        ```
+
+        Once, setup you can proceed to run the model by running the snippet below:
+
+        ```py
+        from transformers import pipeline
+        import torch
+
+        model_id = "openai/gpt-oss-20b"
+
+        pipe = pipeline(
+            "text-generation",
+            model=model_id,
+            torch_dtype="auto",
+            device_map="auto",
+        )
+
+        messages = [
+            {"role": "user", "content": "Explain quantum mechanics clearly and concisely."},
+        ]
+
+        outputs = pipe(
+            messages,
+            max_new_tokens=256,
+        )
+        print(outputs[0]["generated_text"][-1])
+        ```
+
+        Alternatively, you can run the model via [`Transformers Serve`](https://huggingface.co/docs/transformers/main/serving) to spin up a OpenAI-compatible webserver:
+
+        ```
+        transformers serve
+        transformers chat localhost:8000 --model-name-or-path openai/gpt-oss-20b
+        ```
+
+        [Learn more about how to use gpt-oss with Transformers.](https://cookbook.openai.com/articles/gpt-oss/run-transformers)
+
+        ## vLLM
+
+        vLLM recommends using [uv](https://docs.astral.sh/uv/) for Python dependency management. You can use vLLM to spin up an OpenAI-compatible webserver. The following command will automatically download the model and start the server.
+
+        ```bash
+        uv pip install --pre vllm==0.10.1+gptoss \
+            --extra-index-url https://wheels.vllm.ai/gpt-oss/ \
+            --extra-index-url https://download.pytorch.org/whl/nightly/cu128 \
+            --index-strategy unsafe-best-match
+
+        vllm serve openai/gpt-oss-20b
+        ```
+
+        [Learn more about how to use gpt-oss with vLLM.](https://cookbook.openai.com/articles/gpt-oss/run-vllm)
+
+        ## PyTorch / Triton
+
+        To learn about how to use this model with PyTorch and Triton, check out our [reference implementations in the gpt-oss repository](https://github.com/openai/gpt-oss?tab=readme-ov-file#reference-pytorch-implementation).
+
+        ## Ollama
+
+        If you are trying to run gpt-oss on consumer hardware, you can use Ollama by running the following commands after [installing Ollama](https://ollama.com/download).
+
+        ```bash
+        # gpt-oss-20b
+        ollama pull gpt-oss:20b
+        ollama run gpt-oss:20b
+        ```
+
+        [Learn more about how to use gpt-oss with Ollama.](https://cookbook.openai.com/articles/gpt-oss/run-locally-ollama)
+
+        #### LM Studio
+
+        If you are using [LM Studio](https://lmstudio.ai/) you can use the following commands to download.
+
+        ```bash
+        # gpt-oss-20b
+        lms get openai/gpt-oss-20b
+        ```
+
+        Check out our [awesome list](https://github.com/openai/gpt-oss/blob/main/awesome-gpt-oss.md) for a broader collection of gpt-oss resources and inference partners.
+
+        ---
+
+        # Download the model
+
+        You can download the model weights from the [Hugging Face Hub](https://huggingface.co/collections/openai/gpt-oss-68911959590a1634ba11c7a4) directly from Hugging Face CLI:
+
+        ```shell
+        # gpt-oss-20b
+        huggingface-cli download openai/gpt-oss-20b --include "original/*" --local-dir gpt-oss-20b/
+        pip install gpt-oss
+        python -m gpt_oss.chat model/
+        ```
+
+        # Reasoning levels
+
+        You can adjust the reasoning level that suits your task across three levels:
+
+        * **Low:** Fast responses for general dialogue.  
+        * **Medium:** Balanced speed and detail.  
+        * **High:** Deep and detailed analysis.
+
+        The reasoning level can be set in the system prompts, e.g., "Reasoning: high".
+
+        # Tool use
+
+        The gpt-oss models are excellent for:
+        * Web browsing (using built-in browsing tools)
+        * Function calling with defined schemas
+        * Agentic operations like browser tasks
+
+        # Fine-tuning
+
+        Both gpt-oss models can be fine-tuned for a variety of specialized use cases.
+
+        This smaller model `gpt-oss-20b` can be fine-tuned on consumer hardware, whereas the larger [`gpt-oss-120b`](https://huggingface.co/openai/gpt-oss-120b) can be fine-tuned on a single H100 node.
+
+        # Citation
+
+        ```bibtex
+        @misc{openai2025gptoss120bgptoss20bmodel,
+              title={gpt-oss-120b & gpt-oss-20b Model Card}, 
+              author={OpenAI},
+              year={2025},
+              eprint={2508.10925},
+              archivePrefix={arXiv},
+              primaryClass={cs.CL},
+              url={https://arxiv.org/abs/2508.10925}, 
+        }
+        ```
+      provider: Open AI
+      logo: data:image/png;base64,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
+      license: apache-2.0
+      licenseLink: https://www.apache.org/licenses/LICENSE-2.0.txt
+      libraryName: transformers
+      artifacts:
+        - uri: oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5
     - name: mistralai/Mistral-7B-Instruct-v0.3
       description: The Mistral-7B-Instruct-v0.3 Large Language Model (LLM) is an instruct fine-tuned version of the Mistral-7B-v0.3.
       readme: |-

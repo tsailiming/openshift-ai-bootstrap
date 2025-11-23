@@ -282,6 +282,7 @@ oc delete pod $OPEN_WEBUI
 
 | Topic                       | Description                                         | Link                                                        |
 |-------------------------------|-----------------------------------------------------|------------------------------------------------------------|
+| Model Catalog         | Curated library for Gen AI models     | [Link](#model-catalog)                              |
 | vLLM inference engine         | Bring your own models from HuggingFace and serve using vLLM     | [Link](#bring-your-own-model)                              |
 | vLLM inference engine         | Access vLLM via an OpenAI-compatible API endpoint and chat using Open WebUI | [Link](#integration-using-openai-compatible-endpoint)  |
 | Whisper speech-to-text        | Transcribe audio using Whisper models              | [Link](#speech-to-text-using-whisper)                     |
@@ -291,7 +292,74 @@ oc delete pod $OPEN_WEBUI
 | Compressed model deployment   | Deploy optimized/compressed models for inference   | [Link](#deploying-compressed-model)                        |
 | Baseline vs compressed models | Compare performance between original and compressed models | [Link](#comparing-baseline-and-compressed-models)         |
 | LLM Compressor                | Compress large language models for efficient serving | [Link](#using-llm-compressor)                              |
-| AI Playground                | Experiment with LLM, MCP and RAG in the AI playgound | [Link](#ai-playground)                              |
+| AI Playground                 | Experiment with LLM, MCP and RAG in the AI playgound | [Link](#ai-playground)                              |
+| Distributed Inference with llm-d | Efficiently run and scale llms across multiple GPUs |[Link](#distributed-inference-with-llm-d) |
+
+
+
+
+
+### Model Catalog
+
+The OpenShift AI Model Catalog enables data scientists to easily discover and evaluate a wide range of AI models that are ready for their organization. Users can search for models from multiple providers, assess their suitability, and then register them in a model registry for deployment and customization. This streamlined process helps data scientists efficiently identify and utilize the best models for their use cases.
+
+Administrators play a key role in managing the model catalog. OpenShift AI administrators can configure which repository sources are displayed in the catalog, ensuring that only approved or relevant models are visible. 
+
+A sample custom catalog has already been configured during the demo [setup](yaml/demo/custom-model-catalog.yaml):
+
+| Model Name                         | Model Location                                                         |
+|------------------------------------|-------------------------------------------------------------------------|
+| mistralai/Mistral-7B-Instruct-v0.3 | hf://mistralai/Mistral-7B-Instruct-v0.3                                |
+| openai/gpt-oss-120b                | oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5              |
+
+
+
+``` yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: model-catalog-sources
+  namespace: rhoai-model-registries
+  labels:
+    app: model-catalog
+    app.kubernetes.io/component: model-catalog
+    app.kubernetes.io/created-by: model-registry-operator
+    app.kubernetes.io/instance: model-catalog
+    app.kubernetes.io/managed-by: model-registry-operator
+    app.kubernetes.io/name: model-catalog
+    app.kubernetes.io/part-of: model-catalog
+    component: model-catalog  
+data:
+  sample-catalog.yaml: |-
+    source: Hugging Face
+    models:
+    - name: openai/gpt-oss-120b
+      description: OpenAI's new gpt-oss models offer fast, low-cost, open-weight reasoning performance, strong tool use, customizability, and enterprise-ready safety for on-premise AI.
+      readme: |-
+        <readme fro model card>
+      provider: Open AI
+      logo: data:image/png;base64, <base64 string of image>
+      license: apache-2.0
+      licenseLink: https://www.apache.org/licenses/LICENSE-2.0.txt
+      libraryName: transformers
+      artifacts:
+        - uri: oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5          
+  sources.yaml: |-
+    catalogs:
+    - name: Sample Catalog
+      id: sample_custom_catalog
+      type: yaml
+      enabled: true
+      properties:
+        yamlCatalogPath: sample-catalog.yaml
+
+```
+
+![alt text](images/model-catalog-1.png)
+
+![alt text](images/model-catalog-2.png)
+
+You can also deploy the model into your project from the model card page.
 
 ### Bring-Your-Own-Model
 
@@ -799,7 +867,7 @@ make setup-ai-playground
 
 The target will perform the following steps:
 
-1. Download and serve `llama-32-3b-instruct` and `Qwen3-30B-A3B-Thinking-2507-FP8`.
+1. Download and serve `llama-32-3b-instruct` and `Qwen3-30B-A3B-Thinking-2507-FP8`. Experiment with different models to see the differences.
 1. Configure tool calling.
 1. Deploy MCP Servers for kubernetes and weather forecasting.
 1. Setup Llama Stack in the `demo` namespace.
@@ -836,6 +904,18 @@ Before RAG:
 
 Afer RAG:
 ![alt text](images/ai-playground-rag-2.png)
+
+### Distributed Inference with llm-d
+
+Distributed Inference with llm-d is a Kubernetes-native, open-source framework designed for serving large language models (LLMs) at scale. You can use Distributed Inference with llm-d to simplify the deployment of generative AI, focusing on high performance and cost-effectiveness across various hardware accelerators.
+
+Examples:
+
+1. Single-node GPU [deployment](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/single-node-gpu/README.md): Use single-GPU-per-replica deployment patterns for development, testing, or production deployments of smaller models, such as 7-billion-parameter models.
+
+1. Multi-node deployment: For examples using multi-node deployments, see DeepSeek-R1 multi-node deployment [examples](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/dp-ep/deepseek-r1-gpu-rdma-roce/README.md).
+
+1. Intelligent inference scheduler with KV cache routing [deployment](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/precise-prefix-kv-cache-routing/README.md): You can configure the scheduler to track key-value (KV) cache blocks across inference endpoints and route requests to the endpoint with the highest cache hit rate. This configuration improves throughput and reduces latency by maximizing cache reuse.
 
 ## Appendix
 
