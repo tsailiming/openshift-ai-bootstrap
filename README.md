@@ -960,7 +960,7 @@ curl -k "$(oc get llmisvc llmd-gpt-oss-20b -n demo -o jsonpath='{.status.address
 }
 ```
 
-You can use the dashboard to deploy the model, choose `Distributed Inference Server with llm-d`
+You can use the dashboard to deploy the model, choose `Distributed Inference Server with llm-d`.
 
 ![alt text](images/llmd-2.png)
 
@@ -974,6 +974,7 @@ More examples:
 
 1. Intelligent inference scheduler with KV cache routing [deployment](https://github.com/red-hat-data-services/kserve/blob/main/docs/samples/llmisvc/precise-prefix-kv-cache-routing/README.md): You can configure the scheduler to track key-value (KV) cache blocks across inference endpoints and route requests to the endpoint with the highest cache hit rate. This configuration improves throughput and reduces latency by maximizing cache reuse.
 
+1. Add the annotation `security.opendatahub.io/enable-auth: 'false'` to the `llmisvc` resource to disable authentication.
 
 ## Appendix
 
