@@ -306,14 +306,12 @@ The OpenShift AI Model Catalog enables data scientists to easily discover and ev
 
 Administrators play a key role in managing the model catalog. OpenShift AI administrators can configure which repository sources are displayed in the catalog, ensuring that only approved or relevant models are visible. 
 
-A sample custom catalog has already been configured during the demo [setup](yaml/demo/custom-model-catalog.yaml):
+A sample custom catalog has already been configured during the demo [setup](yaml/demo/custom-model-catalog.yaml): 
 
 | Model Name                         | Model Location                                                         |
 |------------------------------------|-------------------------------------------------------------------------|
 | mistralai/Mistral-7B-Instruct-v0.3 | hf://mistralai/Mistral-7B-Instruct-v0.3                                |
 | openai/gpt-oss-20b                | oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5              |
-
-
 
 ``` yaml
 kind: ConfigMap
@@ -361,6 +359,7 @@ data:
 ![alt text](images/model-catalog-2.png)
 
 You can also deploy the model into your project from the model card page.
+![alt text](images/model-catalog-3.png)
 
 ### Bring-Your-Own-Model
 
