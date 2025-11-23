@@ -311,7 +311,7 @@ A sample custom catalog has already been configured during the demo [setup](yaml
 | Model Name                         | Model Location                                                         |
 |------------------------------------|-------------------------------------------------------------------------|
 | mistralai/Mistral-7B-Instruct-v0.3 | hf://mistralai/Mistral-7B-Instruct-v0.3                                |
-| openai/gpt-oss-120b                | oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5              |
+| openai/gpt-oss-20b                | oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5              |
 
 
 
@@ -334,10 +334,10 @@ data:
   sample-catalog.yaml: |-
     source: Hugging Face
     models:
-    - name: openai/gpt-oss-120b
+    - name: openai/gpt-oss-20b
       description: OpenAI's new gpt-oss models offer fast, low-cost, open-weight reasoning performance, strong tool use, customizability, and enterprise-ready safety for on-premise AI.
       readme: |-
-        <readme fro model card>
+        <readme from model card>
       provider: Open AI
       logo: data:image/png;base64, <base64 string of image>
       license: apache-2.0
