@@ -924,6 +924,8 @@ oc apply -f yaml/demo/llmisvc-gpt-oss-20b.yaml
 
 ![alt text](images/llmd-1.png)
 
+Use curl to test the endpoint:
+
 ``` bash
 curl -k "$(oc get llmisvc llmd-gpt-oss-20b -n demo -o jsonpath='{.status.addresses[0].url}')"/v1/models | jq  
 {
@@ -957,6 +959,12 @@ curl -k "$(oc get llmisvc llmd-gpt-oss-20b -n demo -o jsonpath='{.status.address
   ]
 }
 ```
+
+You can use the dashboard to deploy the model, choose `Distributed Inference Server with llm-d`
+
+![alt text](images/llmd-2.png)
+
+**Note:** There is a known [issue](https://issues.redhat.com/browse/RHOAIENG-38896) when setting vLLM arguments in the dashboard will break the deployment. To custom the vLLM arguments, add them to the `VLLM_ADDITIONAL_ARGS` environment variable. Do not add to the custom runtime arguments.
 
 More examples:
 
