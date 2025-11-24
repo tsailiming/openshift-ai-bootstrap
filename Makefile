@@ -117,6 +117,8 @@ setup-llmd:
 	oc wait --for=condition=ready pod -n redhat-ods-applications -l app=odh-model-controller --timeout 150s
 	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
 
+	oc apply -k "github.com/pierdipi/kserve//config/dashboards-odc?ref=example-dashboards"
+
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
 	@$(BASE)/scripts/install-nfs-provisioner.sh
