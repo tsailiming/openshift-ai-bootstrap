@@ -968,10 +968,10 @@ To deploy `openai/gpt-oss-20b` using `LLMInferenceService` with the following co
 * Model: openai/gpt-oss-20b using ModelCar
 * Replicas: 2
 * GPU per replica: 1
-* Scheduler: Default with prefix cache routing
+* Scheduler: [Intelligent Inference Scheduling](https://llm-d.ai/docs/guide/Installation/inference-scheduling)
 
 ``` bash
-oc apply -f yaml/demo/llmisvc-gpt-oss-20b.yaml
+oc apply -f yaml/demo/llmisvc-qwen3-8b-fp8-dynamic
 ```
 
 ![alt text](images/llmd-1.png)

@@ -5,17 +5,17 @@ metadata:
     opendatahub.io/hardware-profile-name: nvidia-gpu
     opendatahub.io/hardware-profile-namespace: redhat-ods-applications
     opendatahub.io/model-type: generative
-    openshift.io/display-name: llmd-gpt-oss-20b
-    security.opendatahub.io/enable-auth: 'false'    
-  name: llmd-gpt-oss-20b  
+    openshift.io/display-name: llmd-qwen3-8b-fp8-dynamic
+    security.opendatahub.io/enable-auth: 'false'
+  name: llmd-qwen3-8b-fp8-dynamic
   namespace: demo  
   labels:
     opendatahub.io/dashboard: 'true'
     opendatahub.io/genai-asset: 'true'
 spec:
   model:
-    name: openai/gpt-oss-20b
-    uri: oci://registry.redhat.io/rhelai1/modelcar-gpt-oss-20b:1.5
+    name: RedHatAI/Qwen3-8B-FP8-dynamic
+    uri: oci://registry.redhat.io/rhelai1/modelcar-qwen3-8b-fp8-dynamic:latest    
   replicas: 2
   router:
     gateway: {}
