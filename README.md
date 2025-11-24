@@ -887,6 +887,12 @@ Under the `demo` data science project, create a new workbench.
 
 ![alt text](images/llmcompressor-workbench-5.png)
 
+* After cloning, checkout the `rhoai-3` branch using the UI or terninal within the workbench:
+
+```bash
+git checkout -b rhoai-3 origin/rhoai-3
+```
+
 * Run `src/llm-compressor/llm-compressor-demo.ipynb`
 
 The notebook will run the model through W4A16 and GPTQ-W4A16 compression and evaluate using GSM8K. GSM8K (Grade School Math 8K) is a dataset of 8.5K high quality linguistically diverse grade school math word problems. The dataset was created to support the task of question answering on basic mathematical problems that require multi-step reasoning.
