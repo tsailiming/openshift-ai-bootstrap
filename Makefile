@@ -42,6 +42,16 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/uwm.yaml
 
+	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
+	@curl -L https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json \
+	  | oc create configmap nvidia-dcgm-exporter-dashboard \
+	      -n openshift-config-managed \
+	      --from-file=dcgm-exporter-dashboard.json=/dev/fd/0
+	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
+	  console.openshift.io/dashboard=true --overwrite
+	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
+	  console.openshift.io/odc-dashboard=true --overwrite
+
 .PHONY: setup-llmd
 setup-llmd:
 	# https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.0/html/deploying_models/deploying_models#deploying-models-using-distributed-inference_rhoai-user
