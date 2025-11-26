@@ -5,6 +5,7 @@ NAMESPACE=demo
 .PHONY: setup-rhoai
 setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f $(BASE)/yaml/rhoai/kueue.yaml
+	oc apply -f $(BASE)/yaml/rhoai/kueue-cr.yaml
 	
 	@$(BASE)/scripts/check-operator-install-status.sh kueue-operator openshift-kueue-operator
 	

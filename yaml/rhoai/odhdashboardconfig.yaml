@@ -20,6 +20,7 @@ spec:
     disableTracking: false
     genAiStudio: true
     modelAsService: true
+    disableKueue: false
   hardwareProfileOrder: []
   notebookController:
     enabled: true
