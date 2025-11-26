@@ -18,6 +18,184 @@ data:
   sample-catalog.yaml: |-
     source: Hugging Face
     models:
+    - name: RedHatAI/Qwen3-Coder-480B-A35B-Instruct-FP8
+      description: Qwen3-Coder-480B-A35B-Instruct is an open-source, mixture-of-experts (MoE) large language model developed by Alibaba Cloud's Qwen team specifically for agentic coding tasks. 
+      readme: |-
+        # Qwen3-Coder-480B-A35B-Instruct-FP8
+        <a href="https://chat.qwen.ai/" target="_blank" style="margin: 2px;">
+            <img alt="Chat" src="https://img.shields.io/badge/%F0%9F%92%9C%EF%B8%8F%20Qwen%20Chat%20-536af5" style="display: inline-block; vertical-align: middle;"/>
+        </a>
+
+        ## Highlights
+
+        Today, we're announcing **Qwen3-Coder**, our most agentic code model to date. **Qwen3-Coder** is available in multiple sizes, but we're excited to introduce its most powerful variant first: **Qwen3-Coder-480B-A35B-Instruct**. featuring the following key enhancements:  
+
+        - **Significant Performance** among open models on **Agentic Coding**, **Agentic Browser-Use**, and other foundational coding tasks, achieving results comparable to Claude Sonnet.
+        - **Long-context Capabilities** with native support for **256K** tokens, extendable up to **1M** tokens using Yarn, optimized for repository-scale understanding.
+        - **Agentic Coding** supporting for most platform such as **Qwen Code**, **CLINE**, featuring a specially designed function call format.
+
+        ![image/jpeg](https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen3-Coder/qwen3-coder-main.jpg)
+
+        ## Model Overview
+
+        **Qwen3-480B-A35B-Instruct** has the following features:
+        - Type: Causal Language Models
+        - Training Stage: Pretraining & Post-training
+        - Number of Parameters: 480B in total and 35B activated
+        - Number of Layers: 62
+        - Number of Attention Heads (GQA): 96 for Q and 8 for KV
+        - Number of Experts: 160
+        - Number of Activated Experts: 8
+        - Context Length: **262,144 natively**. 
+
+        **NOTE: This model supports only non-thinking mode and does not generate ``<think></think>`` blocks in its output. Meanwhile, specifying `enable_thinking=False` is no longer required.**
+
+        For more details, including benchmark evaluation, hardware requirements, and inference performance, please refer to our [blog](https://qwenlm.github.io/blog/qwen3-coder/), [GitHub](https://github.com/QwenLM/Qwen3-Coder), and [Documentation](https://qwen.readthedocs.io/en/latest/).
+
+
+        ## Quickstart
+
+        We advise you to use the latest version of `transformers`.
+
+        With `transformers<4.51.0`, you will encounter the following error:
+        ```
+        KeyError: 'qwen3_moe'
+        ```
+
+        The following contains a code snippet illustrating how to use the model generate content based on given inputs. 
+        ```python
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        model_name = "Qwen/Qwen3-480B-A35B-Instruct"
+
+        # load the tokenizer and the model
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype="auto",
+            device_map="auto"
+        )
+
+        # prepare the model input
+        prompt = "Write a quick sort algorithm."
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+
+        # conduct text completion
+        generated_ids = model.generate(
+            **model_inputs,
+            max_new_tokens=65536
+        )
+        output_ids = generated_ids[0][len(model_inputs.input_ids[0]):].tolist() 
+
+        content = tokenizer.decode(output_ids, skip_special_tokens=True)
+
+        print("content:", content)
+        ```
+
+        **Note: If you encounter out-of-memory (OOM) issues, consider reducing the context length to a shorter value, such as `32,768`.**
+
+
+        ## Note on FP8
+
+        For convenience and performance, we have provided `fp8`-quantized model checkpoint for Qwen3, whose name ends with `-FP8`. The quantization method is fine-grained `fp8` quantization with block size of 128. You can find more details in the `quantization_config` field in `config.json`.
+
+        You can use the Qwen3-480B-A35B-Instruct-FP8 model with serveral inference frameworks, including `transformers`, `sglang`, and `vllm`, as the original bfloat16 model.
+        However, please pay attention to the following known issues:
+        - `transformers`:
+            - there are currently issues with the "fine-grained fp8" method in `transformers` for distributed inference. You may need to set the environment variable `CUDA_LAUNCH_BLOCKING=1` if multiple devices are used in inference.
+
+
+        ## Agentic Coding
+
+        Qwen3-Coder excels in tool calling capabilities. 
+
+        You can simply define or use any tools as following example.
+        ```python
+        # Your tool implementation
+        def square_the_number(num: float) -> dict:
+            return num ** 2
+
+        # Define Tools
+        tools=[
+            {
+                "type":"function",
+                "function":{
+                    "name": "square_the_number",
+                    "description": "output the square of the number.",
+                    "parameters": {
+                        "type": "object",
+                        "required": ["input_num"],
+                        "properties": {
+                            'input_num': {
+                                'type': 'number', 
+                                'description': 'input_num is a number that will be squared'
+                                }
+                        },
+                    }
+                }
+            }
+        ]
+
+        import OpenAI
+        # Define LLM
+        client = OpenAI(
+            # Use a custom endpoint compatible with OpenAI API
+            base_url='http://localhost:8000/v1',  # api_base
+            api_key="EMPTY"
+        )
+        
+        messages = [{'role': 'user', 'content': 'square the number 1024'}]
+
+        completion = client.chat.completions.create(
+            messages=messages,
+            model="Qwen3-Coder-480B-A35B-Instruct",
+            max_tokens=65536,
+            tools=tools,
+        )
+
+        print(completion.choice[0])
+        ```
+
+        ## Best Practices
+
+        To achieve optimal performance, we recommend the following settings:
+
+        1. **Sampling Parameters**:
+          - We suggest using `temperature=0.7`, `top_p=0.8`, `top_k=20`, `repetition_penalty=1.05`.
+
+        2. **Adequate Output Length**: We recommend using an output length of 65,536 tokens for most queries, which is adequate for instruct models.
+
+
+        ### Citation
+
+        If you find our work helpful, feel free to give us a cite.
+
+        ```
+        @misc{qwen3technicalreport,
+              title={Qwen3 Technical Report}, 
+              author={Qwen Team},
+              year={2025},
+              eprint={2505.09388},
+              archivePrefix={arXiv},
+              primaryClass={cs.CL},
+              url={https://arxiv.org/abs/2505.09388}, 
+        }
+        ```      
+      provider: Qwen
+      logo: data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz48c3ZnIGlkPSJ1dWlkLTlmMDM5ZTY4LTZiOTgtNDNlMS05ZjE3LWYwOWNkZTFiNzdhZCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjE3NSIgdmlld0JveD0iMCAwIDE3NSAxNzUiPjxkZWZzPjxzdHlsZT4udXVpZC1hNjc0MmM0MS1hNDI3LTQzZGUtYmMyZS1iMTYzZWI4YzMzZmZ7ZmlsbDpub25lO30udXVpZC1kODQzNTgyOS05ZGJhLTRhYzgtODk2ZS0xYmNmMjNhY2RhMjZ7ZmlsbDojZTBlMGUwO30udXVpZC1hY2I2ZjlhZC1mYWI1LTRlOWYtOWQ1Yy1kYTc1MTJmOWFmZDh7ZmlsbDojZmZmO30udXVpZC1jNGQxYmJmMC02ZGZkLTQyMTEtYmZjYi1iYjM4YjU2ZWQ3NGF7ZmlsbDojNjM5OTNkO30udXVpZC1lZjg1YzExZi1iNjczLTRmZjAtYTYxMi1mMGRiMDYyMmNlYTJ7ZmlsbDojODdiYjYyO30udXVpZC0yZGM1Zjc4Yy04ZTgwLTQxNTYtODYxNy1jOTllZGJlZGRjOGN7ZmlsbDojZTAwO308L3N0eWxlPjwvZGVmcz48ZyBpZD0idXVpZC0zZjA0ZDNkOS0xYzI3LTRkYTYtYWU3NS0xZjlhYTMzY2EzNWQiPjxnIGlkPSJ1dWlkLWRhMzg4MTVhLTAyMGEtNDcwOC1iZWQ3LTNiZGEwYmNmZWM0YiI+PHJlY3QgY2xhc3M9InV1aWQtYzRkMWJiZjAtNmRmZC00MjExLWJmY2ItYmIzOGI1NmVkNzRhIiB4PSIxMjIuNSIgeT0iMTIyLjUiIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgcng9IjEyLjUiIHJ5PSIxMi41Ii8+PHBhdGggY2xhc3M9InV1aWQtZWY4NWMxMWYtYjY3My00ZmYwLWE2MTItZjBkYjA2MjJjZWEyIiBkPSJNMTYwLDEyMy41YzYuMzQxMTMsMCwxMS41LDUuMTU4ODgsMTEuNSwxMS41djI1YzAsNi4zNDExMy01LjE1ODg3LDExLjUtMTEuNSwxMS41aC0yNWMtNi4zNDExMiwwLTExLjUtNS4xNTg4Ny0xMS41LTExLjV2LTI1YzAtNi4zNDExMiw1LjE1ODg4LTExLjUsMTEuNS0xMS41aDI1TTE2MCwxMjIuNWgtMjVjLTYuOTAzNTYsMC0xMi41LDUuNTk2NDQtMTIuNSwxMi41djI1YzAsNi45MDM1Niw1LjU5NjQ0LDEyLjUsMTIuNSwxMi41aDI1YzYuOTAzNTYsMCwxMi41LTUuNTk2NDQsMTIuNS0xMi41di0yNWMwLTYuOTAzNTYtNS41OTY0NC0xMi41LTEyLjUtMTIuNWgwWiIvPjwvZz48ZyBpZD0idXVpZC1mMDM5ZWRhYy04NzNkLTRhYzAtODIyMS1lNWZiYjdiYTAwNjMiPjxnIGlkPSJ1dWlkLTAxMTdlYTBhLTU3N2YtNGUyMi1iYjliLTZiNDE2MDI3Njc0NiI+PGcgaWQ9InV1aWQtNGU5NTUyZmItZWFhMS00MmExLWFjMDgtMTI0ZmJmNTQ0MmRkIj48cmVjdCBjbGFzcz0idXVpZC1hNjc0MmM0MS1hNDI3LTQzZGUtYmMyZS1iMTYzZWI4YzMzZmYiIHg9IjEzMS41IiB5PSIxMzEuNSIgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIi8+PC9nPjxnIGlkPSJ1dWlkLTZhMDVmZDM5LTk4ZTMtNDU0Zi05NmZkLWZkNTdmYmZlMjdkMCI+PHBhdGggY2xhc3M9InV1aWQtYWNiNmY5YWQtZmFiNS00ZTlmLTlkNWMtZGE3NTEyZjlhZmQ4IiBkPSJNMTQyLjcsMTU4LjM2NzJjLS42MTQwOCwwLTEuMjI5NzYtLjIzMjgtMS42OTY4LS43MDE2bC03LjQzNDQtNy40MzQ0Yy0uNjI0OTYtLjYyNDk2LS42MjQ5Ni0xLjYzNzQ0LDAtMi4yNjI1NnMxLjYzNzQ0LS42MjQ5NiwyLjI2MjU2LDBsNi44Njg4LDYuODY4OCwxNi40Njg4LTE2LjQ2ODhjLjYyNDk2LS42MjQ5NiwxLjYzNzQ0LS42MjQ5NiwyLjI2MjU2LDAsLjYyNTEyLjYyNDk2LjYyNDk2LDEuNjM3NDQsMCwyLjI2MjU2bC0xNy4wMzQ0LDE3LjAzNDRjLS40NjcyLjQ2ODgtMS4wODI4OC43MDE2LTEuNjk2OC43MDE2aC0uMDAwMzJaIi8+PC9nPjwvZz48L2c+PC9nPjxnIGlkPSJ1dWlkLWMwOGJhYmRjLTExMWMtNDIyMS04NWM4LTkwYzhlMjFhN2Q1OSI+PHBhdGggY2xhc3M9InV1aWQtYWNiNmY5YWQtZmFiNS00ZTlmLTlkNWMtZGE3NTEyZjlhZmQ4IiBkPSJNMTE3LjUsMTM1YzAtOS42NDk1NCw3Ljg1MDQ2LTE3LjUsMTcuNS0xNy41aDE3LjQwNzg0Yy4wNTQ1LS44MjcyMS4wOTIxNi0xLjY1OS4wOTIxNi0yLjVWNDBjMC0yMC43MTA2OS0xNi43ODkzMS0zNy41LTM3LjUtMzcuNUg0MEMxOS4yODkzMSwyLjUsMi41LDE5LjI4OTMxLDIuNSw0MHY3NWMwLDIwLjcxMDYzLDE2Ljc4OTMxLDM3LjUsMzcuNSwzNy41aDc1Yy44NDEsMCwxLjY3Mjc5LS4wMzc2NiwyLjUtLjA5MjE2di0xNy40MDc4NFoiLz48cGF0aCBjbGFzcz0idXVpZC1kODQzNTgyOS05ZGJhLTRhYzgtODk2ZS0xYmNmMjNhY2RhMjYiIGQ9Ik0xMTcuNSwxNDcuMTg1MzZjLS44MjYwNS4wNjM2LTEuNjU3OS4xMDYyNi0yLjUuMTA2MjZINDBjLTE3LjgwNTczLDAtMzIuMjkxNjktMTQuNDg1OTYtMzIuMjkxNjktMzIuMjkxNjNWNDBDNy43MDgzMSwyMi4xOTQzNCwyMi4xOTQyNyw3LjcwODMxLDQwLDcuNzA4MzFoNzVjMTcuODA1NzMsMCwzMi4yOTE2OSwxNC40ODYwMiwzMi4yOTE2OSwzMi4yOTE2OXY3NWMwLC44NDIxLS4wNDI2NiwxLjY3Mzk1LS4xMDYyNiwyLjVoNS4yMjI0MWMuMDU0NS0uODI3MjEuMDkyMTYtMS42NTkuMDkyMTYtMi41VjQwYzAtMjAuNzEwNzUtMTYuNzg5MjUtMzcuNS0zNy41LTM3LjVINDBDMTkuMjg5MjUsMi41LDIuNSwxOS4yODkyNSwyLjUsNDB2NzVjMCwyMC43MTA2OSwxNi43ODkyNSwzNy41LDM3LjUsMzcuNWg3NWMuODQxLDAsMS42NzI3OS0uMDM3NjYsMi41LS4wOTIxNnYtNS4yMjI0N1oiLz48L2c+PGcgaWQ9InV1aWQtYjU4NDEwOGQtNjIyNy00MDBlLWIxOTctYjEzMDY1ZWM3ZjA4Ij48cmVjdCBjbGFzcz0idXVpZC1hNjc0MmM0MS1hNDI3LTQzZGUtYmMyZS1iMTYzZWI4YzMzZmYiIHdpZHRoPSIxNzUiIGhlaWdodD0iMTc1Ii8+PHBhdGggY2xhc3M9InV1aWQtMmRjNWY3OGMtOGU4MC00MTU2LTg2MTctYzk5ZWRiZWRkYzhjIiBkPSJNMTA2LjY2NjkxLDEwOS4yNzE3M2gtNTguMzMzMzJjLTEuMDUzODcsMC0yLjAwMTk1LS42MzQ3Ny0yLjQwNjgyLTEuNjA3MjYtLjQwMjgzLS45NzI0OS0uMTc5MDQtMi4wOTM1MS41NjU1OS0yLjgzODEzbDI3LjMyNTQ0LTI3LjMyNTQ0LTI3LjMyNTQ0LTI3LjMyNTQ0Yy0uNzQ0NjMtLjc0NDYzLS45Njg0Mi0xLjg2NTY0LS41NjU1OS0yLjgzODEzLjQwNDg3LS45NzI0OSwxLjM1Mjk1LTEuNjA3MjYsMi40MDY4Mi0xLjYwNzI2aDU4LjMzMzMyYzEuMDUzODcsMCwyLjAwMTk1LjYzNDc3LDIuNDA2ODIsMS42MDcyNi40MDI4My45NzI0OS4xNzkwNCwyLjA5MzUxLS41NjU1OSwyLjgzODEzbC0yNy4zMjU0NCwyNy4zMjU0NCwyNy4zMjU0NCwyNy4zMjU0NGMuNzQ0NjMuNzQ0NjMuOTY4NDIsMS44NjU2NC41NjU1OSwyLjgzODEzLS40MDQ4Ny45NzI0OS0xLjM1Mjk1LDEuNjA3MjYtMi40MDY4MiwxLjYwNzI2Wk01NC42MjAyLDEwNC4wNjM0aDQ1Ljc2MDA4bC0yMi44ODAwNC0yMi44ODAwNC0yMi44ODAwNCwyMi44ODAwNFpNNTQuNjIwMiw1MC45Mzg0MWwyMi44ODAwNCwyMi44ODAwNCwyMi44ODAwNC0yMi44ODAwNGgtNDUuNzYwMDhaIi8+PHBhdGggY2xhc3M9InV1aWQtMmRjNWY3OGMtOGU4MC00MTU2LTg2MTctYzk5ZWRiZWRkYzhjIiBkPSJNMTA2LjY2NjkxLDgwLjEwNTA3aC01OC4zMzMzMmMtMS40MzgzOSwwLTIuNjA0MTctMS4xNjU3Ny0yLjYwNDE3LTIuNjA0MTdzMS4xNjU3Ny0yLjYwNDE3LDIuNjA0MTctMi42MDQxN2g1OC4zMzMzMmMxLjQzODM5LDAsMi42MDQxNywxLjE2NTc3LDIuNjA0MTcsMi42MDQxN3MtMS4xNjU3NywyLjYwNDE3LTIuNjA0MTcsMi42MDQxN1oiLz48cmVjdCBjbGFzcz0idXVpZC1hY2I2ZjlhZC1mYWI1LTRlOWYtOWQ1Yy1kYTc1MTJmOWFmZDgiIHg9IjEwMi41IiB5PSIxMDIuNDk5OTgiIHdpZHRoPSIxMi41IiBoZWlnaHQ9IjEyLjUiLz48cGF0aCBkPSJNMTE1LjAwMDI0LDExNy42MDUwNmgtMTIuNWMtMS40MzgzOSwwLTIuNjA0MTctMS4xNjU3Ny0yLjYwNDE3LTIuNjA0MTd2LTEyLjVjMC0xLjQzODM5LDEuMTY1NzctMi42MDQxNywyLjYwNDE3LTIuNjA0MTdoMTIuNWMxLjQzODM5LDAsMi42MDQxNywxLjE2NTc3LDIuNjA0MTcsMi42MDQxN3YxMi41YzAsMS40MzgzOS0xLjE2NTc3LDIuNjA0MTctMi42MDQxNywyLjYwNDE3Wk0xMDUuMTA0NDEsMTEyLjM5NjczaDcuMjkxNjd2LTcuMjkxNjdoLTcuMjkxNjd2Ny4yOTE2N1oiLz48cmVjdCBjbGFzcz0idXVpZC1hY2I2ZjlhZC1mYWI1LTRlOWYtOWQ1Yy1kYTc1MTJmOWFmZDgiIHg9IjQwLjAwMDAxIiB5PSIxMDIuNDk5OTgiIHdpZHRoPSIxMi41IiBoZWlnaHQ9IjEyLjUiLz48cGF0aCBkPSJNNTIuNTAwMjUsMTE3LjYwNTA2aC0xMi41Yy0xLjQzODM5LDAtMi42MDQxNy0xLjE2NTc3LTIuNjA0MTctMi42MDQxN3YtMTIuNWMwLTEuNDM4MzksMS4xNjU3Ny0yLjYwNDE3LDIuNjA0MTctMi42MDQxN2gxMi41YzEuNDM4MzksMCwyLjYwNDE3LDEuMTY1NzcsMi42MDQxNywyLjYwNDE3djEyLjVjMCwxLjQzODM5LTEuMTY1NzcsMi42MDQxNy0yLjYwNDE3LDIuNjA0MTdaTTQyLjYwNDQxLDExMi4zOTY3M2g3LjI5MTY3di03LjI5MTY3aC03LjI5MTY3djcuMjkxNjdaIi8+PHJlY3QgY2xhc3M9InV1aWQtYWNiNmY5YWQtZmFiNS00ZTlmLTlkNWMtZGE3NTEyZjlhZmQ4IiB4PSIxMDIuNSIgeT0iMzkuOTk5OTkiIHdpZHRoPSIxMi41IiBoZWlnaHQ9IjEyLjUiLz48cGF0aCBkPSJNMTE1LjAwMDI0LDU1LjEwNTA3aC0xMi41Yy0xLjQzODM5LDAtMi42MDQxNy0xLjE2NTc3LTIuNjA0MTctMi42MDQxN3YtMTIuNWMwLTEuNDM4MzksMS4xNjU3Ny0yLjYwNDE3LDIuNjA0MTctMi42MDQxN2gxMi41YzEuNDM4MzksMCwyLjYwNDE3LDEuMTY1NzcsMi42MDQxNywyLjYwNDE3djEyLjVjMCwxLjQzODM5LTEuMTY1NzcsMi42MDQxNy0yLjYwNDE3LDIuNjA0MTdaTTEwNS4xMDQ0MSw0OS44OTY3NGg3LjI5MTY3di03LjI5MTY3aC03LjI5MTY3djcuMjkxNjdaIi8+PHJlY3QgY2xhc3M9InV1aWQtYWNiNmY5YWQtZmFiNS00ZTlmLTlkNWMtZGE3NTEyZjlhZmQ4IiB4PSI0MC4wMDAwMSIgeT0iMzkuOTk5OTkiIHdpZHRoPSIxMi41IiBoZWlnaHQ9IjEyLjUiLz48cGF0aCBkPSJNNTIuNTAwMjUsNTUuMTA1MDdoLTEyLjVjLTEuNDM4MzksMC0yLjYwNDE3LTEuMTY1NzctMi42MDQxNy0yLjYwNDE3di0xMi41YzAtMS40MzgzOSwxLjE2NTc3LTIuNjA0MTcsMi42MDQxNy0yLjYwNDE3aDEyLjVjMS40MzgzOSwwLDIuNjA0MTcsMS4xNjU3NywyLjYwNDE3LDIuNjA0MTd2MTIuNWMwLDEuNDM4MzktMS4xNjU3NywyLjYwNDE3LTIuNjA0MTcsMi42MDQxN1pNNDIuNjA0NDEsNDkuODk2NzRoNy4yOTE2N3YtNy4yOTE2N2gtNy4yOTE2N3Y3LjI5MTY3WiIvPjxyZWN0IGNsYXNzPSJ1dWlkLWFjYjZmOWFkLWZhYjUtNGU5Zi05ZDVjLWRhNzUxMmY5YWZkOCIgeD0iNDAuMDAwMDEiIHk9IjcxLjI0OTk5IiB3aWR0aD0iMTIuNSIgaGVpZ2h0PSIxMi41Ii8+PHBhdGggZD0iTTUyLjUwMDI1LDg2LjM1NTA3aC0xMi41Yy0xLjQzODM5LDAtMi42MDQxNy0xLjE2NTc3LTIuNjA0MTctMi42MDQxN3YtMTIuNWMwLTEuNDM4MzksMS4xNjU3Ny0yLjYwNDE3LDIuNjA0MTctMi42MDQxN2gxMi41YzEuNDM4MzksMCwyLjYwNDE3LDEuMTY1NzcsMi42MDQxNywyLjYwNDE3djEyLjVjMCwxLjQzODM5LTEuMTY1NzcsMi42MDQxNy0yLjYwNDE3LDIuNjA0MTdaTTQyLjYwNDQxLDgxLjE0NjczaDcuMjkxNjd2LTcuMjkxNjdoLTcuMjkxNjd2Ny4yOTE2N1oiLz48cmVjdCBjbGFzcz0idXVpZC1hY2I2ZjlhZC1mYWI1LTRlOWYtOWQ1Yy1kYTc1MTJmOWFmZDgiIHg9IjEwMi41IiB5PSI3MS4yNDk5OSIgd2lkdGg9IjEyLjUiIGhlaWdodD0iMTIuNSIvPjxwYXRoIGQ9Ik0xMTUuMDAwMjQsODYuMzU1MDdoLTEyLjVjLTEuNDM4MzksMC0yLjYwNDE3LTEuMTY1NzctMi42MDQxNy0yLjYwNDE3di0xMi41YzAtMS40MzgzOSwxLjE2NTc3LTIuNjA0MTcsMi42MDQxNy0yLjYwNDE3aDEyLjVjMS40MzgzOSwwLDIuNjA0MTcsMS4xNjU3NywyLjYwNDE3LDIuNjA0MTd2MTIuNWMwLDEuNDM4MzktMS4xNjU3NywyLjYwNDE3LTIuNjA0MTcsMi42MDQxN1pNMTA1LjEwNDQxLDgxLjE0NjczaDcuMjkxNjd2LTcuMjkxNjdoLTcuMjkxNjd2Ny4yOTE2N1oiLz48cmVjdCBjbGFzcz0idXVpZC1hY2I2ZjlhZC1mYWI1LTRlOWYtOWQ1Yy1kYTc1MTJmOWFmZDgiIHg9IjcxLjI1MDAxIiB5PSI3MS4yNDk5OSIgd2lkdGg9IjEyLjUiIGhlaWdodD0iMTIuNSIvPjxwYXRoIGQ9Ik04My43NTAyNCw4Ni4zNTUwN2gtMTIuNWMtMS40MzgzOSwwLTIuNjA0MTctMS4xNjU3Ny0yLjYwNDE3LTIuNjA0MTd2LTEyLjVjMC0xLjQzODM5LDEuMTY1NzctMi42MDQxNywyLjYwNDE3LTIuNjA0MTdoMTIuNWMxLjQzODM5LDAsMi42MDQxNywxLjE2NTc3LDIuNjA0MTcsMi42MDQxN3YxMi41YzAsMS40MzgzOS0xLjE2NTc3LDIuNjA0MTctMi42MDQxNywyLjYwNDE3Wk03My44NTQ0MSw4MS4xNDY3M2g3LjI5MTY3di03LjI5MTY3aC03LjI5MTY3djcuMjkxNjdaIi8+PC9nPjwvc3ZnPg==
+      license: apache-2.0
+      licenseLink: https://www.apache.org/licenses/LICENSE-2.0.txt
+      libraryName: transformers
+      artifacts:
+        - uri: hf://RedHatAI/Qwen3-Coder-480B-A35B-Instruct-FP8
     - name: openai/gpt-oss-20b
       description: OpenAI's new gpt-oss models offer fast, low-cost, open-weight reasoning performance, strong tool use, customizability, and enterprise-ready safety for on-premise AI.
       readme: |-
