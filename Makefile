@@ -5,9 +5,10 @@ NAMESPACE=demo
 .PHONY: setup-rhoai
 setup-rhoai: add-gpu-operator add-nfs-provisioner
 	oc apply -f $(BASE)/yaml/rhoai/kueue.yaml
-	oc apply -f $(BASE)/yaml/rhoai/kueue-cr.yaml
 	
 	@$(BASE)/scripts/check-operator-install-status.sh kueue-operator openshift-kueue-operator
+	
+	oc apply -f $(BASE)/yaml/rhoai/kueue-cr.yaml
 	
 	@echo "Set Red Hat build of Kueue operator to be upgraded manually instead of automatic"
 	@oc patch subscription kueue-operator \
