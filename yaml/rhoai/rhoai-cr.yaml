@@ -31,7 +31,7 @@ spec:
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default
-      managementState: Removed
+      managementState: Unmanaged
     workbenches:
       managementState: Managed
       workbenchNamespace: rhods-notebooks
