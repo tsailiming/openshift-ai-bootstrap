@@ -29,7 +29,7 @@ export NAME=$(k8s_safe_name "$NAME")
 # fi
 
 IFS=' ' read -r -a ARG_ARRAY <<< "$EXTRA_VLLM_ARGS"
-VLLM_ARGS=$(printf '%s\n' $EXTRA_VLLM_ARGS | jq -R . | jq -s .)
+export VLLM_ARGS=$(printf '%s\n' $EXTRA_VLLM_ARGS | jq -R . | jq -s .)
 
 printf "%-15s-+-%s\n" "---------------" "-----------------------------"
 printf "%-15s | %s\n" "ISVC Name" "$NAME"
