@@ -37,7 +37,7 @@ objects:
           env:
             - name: HF_HOME
               value: /tmp/hf_home
-          image: 'registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.3'
+          image: 'registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.5'
           name: kserve-container
           ports:
             - containerPort: 8080
