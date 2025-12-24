@@ -15,7 +15,7 @@ objects:
     metadata:
       annotations:
         opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
-        opendatahub.io/runtime-version: v0.11.0
+        opendatahub.io/runtime-version: v0.11.2
         openshift.io/display-name: RHAIIS NVIDIA GPU ServingRuntime for KServe
         opendatahub.io/apiProtocol: REST
       labels:
