@@ -120,6 +120,7 @@ setup-llmd:
 	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
 
 	oc apply -k "github.com/pierdipi/kserve//config/dashboards-odc?ref=example-dashboards"
+	oc apply -f $(BASE)/yaml/rhoai/llmd-grafana-dashboard.yaml
 
 .PHONY: teardown-llmd
 teardown-llmd:
@@ -144,6 +145,9 @@ teardown-llmd:
 
 	oc delete pod -n redhat-ods-applications -l app=odh-model-controller
 	oc delete pod -n redhat-ods-applications -l control-plane=kserve-controller-manager
+
+	-oc delete -k "github.com/pierdipi/kserve//config/dashboards-odc?ref=example-dashboards"
+	-oc delete -f $(BASE)/yaml/rhoai/llmd-grafana-dashboard.yaml
 
 	oc wait --for=condition=ready pod -n redhat-ods-applications -l app=odh-model-controller --timeout 150s
 	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
