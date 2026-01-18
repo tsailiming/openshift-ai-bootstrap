@@ -356,6 +356,7 @@ data:
 ![alt text](images/model-catalog-2.png)
 
 You can also deploy the model into your project from the model card page.
+
 ![alt text](images/model-catalog-3.png)
 
 ### Bring-Your-Own-Model
@@ -842,7 +843,7 @@ ensure CRDs are installed first
 
 The grafana dashboard is installed in `user-grafana` namespace and url is available here:
 
-```
+``` bash
 $ echo "https://$(oc get route grafana-route -o jsonpath='{.spec.host}' -n user-grafana)"
 https://grafana-route-user-grafana.apps.f8ki3.sandbox1605.opentlc.com
 https://grafana-route-user-grafana.apps.f8ki3.sandbox1605.opentlc.com
