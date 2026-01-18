@@ -121,6 +121,33 @@ setup-llmd:
 
 	oc apply -k "github.com/pierdipi/kserve//config/dashboards-odc?ref=example-dashboards"
 
+.PHONY: teardown-llmd
+teardown-llmd:
+
+	-oc delete -f $(BASE)/yaml/rhoai/authorino.yaml
+	-oc delete -f $(BASE)/yaml/rhoai/kuadrant-cr.yaml
+	-oc delete -f $(BASE)/yaml/rhoai/gateway.yaml.tmpl 
+
+	-oc delete subscription authorino-operator-stable-redhat-operators-openshift-marketplace -n openshift-operators
+	-oc delete subscription dns-operator-stable-redhat-operators-openshift-marketplace -n  openshift-operators
+	-oc delete subscription limitador-operator-stable-redhat-operators-openshift-marketplace -n  openshift-operators
+	-oc delete -f $(BASE)/yaml/rhoai/kuadrant.yaml
+
+	-oc delete secret/authorino-server-cert -n kuadrant-system 
+	-oc delete csv rhcl-operator.v1.2.0 -n openshift-operators
+	-oc delete csv dns-operator.v1.2.0 -n openshift-operators
+	-oc delete csv limitador-operator.v1.2.0 -n openshift-operators
+	-oc delete csv authorino-operator.v1.2.4 -n openshift-operators
+
+	-oc delete -f $(BASE)/yaml/rhoai/lws-cr.yaml
+	-oc delete -f $(BASE)/yaml/rhoai/lws.yaml
+
+	oc delete pod -n redhat-ods-applications -l app=odh-model-controller
+	oc delete pod -n redhat-ods-applications -l control-plane=kserve-controller-manager
+
+	oc wait --for=condition=ready pod -n redhat-ods-applications -l app=odh-model-controller --timeout 150s
+	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
+
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
 	@$(BASE)/scripts/install-nfs-provisioner.sh

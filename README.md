@@ -977,7 +977,7 @@ To deploy `openai/gpt-oss-20b` using `LLMInferenceService` with the following co
 * Scheduler: [Intelligent Inference Scheduling](https://llm-d.ai/docs/guide/Installation/inference-scheduling)
 
 ``` bash
-oc apply -f yaml/demo/llmisvc-qwen3-8b-fp8-dynamic
+oc apply -f yaml/demo/llmisvc-gptoss-20b.yaml
 ```
 
 ![alt text](images/llmd-1.png)
@@ -985,7 +985,7 @@ oc apply -f yaml/demo/llmisvc-qwen3-8b-fp8-dynamic
 Use curl to test the endpoint:
 
 ``` bash
-curl -k "$(oc get llmisvc llmd-gpt-oss-20b -n demo -o jsonpath='{.status.addresses[0].url}')"/v1/models | jq  
+curl -k "$(oc get llmisvc llmd-gptoss-20b -n demo -o jsonpath='{.status.addresses[0].url}')"/v1/models | jq  
 {
   "object": "list",
   "data": [
