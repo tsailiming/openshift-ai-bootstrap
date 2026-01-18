@@ -808,8 +808,8 @@ Install the Grafana operator and add the dashboards:
 
 ``` bash
 $ git clone https://github.com/rh-aiservices-bu/rhoai-uwm
-
-$ oc apply -k overlays/rhoai-uwm-user-grafana-app
+$ cd rhoai-uwm
+$ oc apply -k rhoai-uwm-grafana/overlays/rhoai-uwm-user-grafana-app
 namespace/user-grafana unchanged
 clusterrole.rbac.authorization.k8s.io/grafana-proxy unchanged
 rolebinding.rbac.authorization.k8s.io/grafana-proxy unchanged
