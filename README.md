@@ -1019,6 +1019,16 @@ curl -k "$(oc get llmisvc llmd-gptoss-20b -n demo -o jsonpath='{.status.addresse
 }
 ```
 
+If you are getting `Internal Server Error` from curl, remove the `enable-auth` annotation and reapply the yaml it.
+
+``` yaml
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  annotations:    
+    security.opendatahub.io/enable-auth: 'false'
+```
+
 You can use the dashboard to deploy the model, choose `Distributed Inference Server with llm-d`.
 
 ![alt text](images/llmd-2.png)
