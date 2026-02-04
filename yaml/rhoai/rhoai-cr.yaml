@@ -17,7 +17,7 @@ spec:
       managementState: Managed
       registriesNamespace: rhoai-model-registries
     feastoperator:
-      managementState: Removed
+      managementState: Managed
     trustyai:
       eval:
         lmeval:
