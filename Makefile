@@ -297,3 +297,35 @@ deploy-pipline: teardown-pipeline
 
 	@oc apply -f $(BASE)/yaml/infra/dashboard-dspa-secret.yaml -n $(NAMESPACE)
 	@oc apply -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
+
+
+.PHONY: setup-multi-user
+setup-multi-user:
+	@HASH=$$(oc get secret kubeadmin -n kube-system \
+		-o jsonpath='{.data.kubeadmin}' | base64 --decode); \
+	\
+	echo "Using same kubeadmin bcrypt hash $$HASH"; \
+	rm -f /tmp/users.htpasswd; \
+	echo "user1:$$HASH" >> /tmp/users.htpasswd; \
+	echo "user2:$$HASH" >> /tmp/users.htpasswd; \
+	\
+	oc create secret generic htpasswd-secret \
+		--from-file=htpasswd=/tmp/users.htpasswd \
+		-n openshift-config --dry-run=client -o yaml | oc apply -f -
+
+	@oc apply -f $(BASE)/yaml/infra/oauth.yaml
+
+	-oc new-project user1
+	@oc label namespace user1 \
+		maistra.io/member-of=istio-system \
+		modelmesh-enabled=false \
+		opendatahub.io/dashboard=true
+
+	-oc new-project user2
+	@oc label namespace user2 \
+		maistra.io/member-of=istio-system \
+		modelmesh-enabled=false \
+		opendatahub.io/dashboard=true
+
+	@oc adm policy add-role-to-user edit user1 -n user1
+	@oc adm policy add-role-to-user edit user2 -n user2
