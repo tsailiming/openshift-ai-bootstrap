@@ -30,3 +30,6 @@ spec:
     pvcSize: 20Gi
   templateDisablement: []
   templateOrder: []
+  modelServing:
+    deploymentStrategy: recreate
+    isLLMdDefault: false
