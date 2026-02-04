@@ -12,9 +12,9 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	
 	@echo "Set Red Hat build of Kueue operator to be upgraded manually instead of automatic"
 	@oc patch subscription kueue-operator \
-    -n openshift-kueue-operator \
-    --type=merge \
-    -p '{"spec": {"installPlanApproval": "Manual"}}'
+	-n openshift-kueue-operator \
+	--type=merge \
+	-p '{"spec": {"installPlanApproval": "Manual"}}'
 
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@until oc get DSCInitialization/default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
@@ -30,9 +30,9 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 
 	@echo "Set RHOAI operator to be upgraded manually instead of automatic"
 	@oc patch subscription rhods-operator \
-    -n redhat-ods-operator \
-    --type=merge \
-    -p '{"spec": {"installPlanApproval": "Manual"}}'
+	-n redhat-ods-operator \
+	--type=merge \
+	-p '{"spec": {"installPlanApproval": "Manual"}}'
 
 	oc apply -f ${BASE}/yaml/rhoai/odhdashboardconfig.yaml
 
@@ -47,8 +47,8 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
 	@curl -L https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json \
 	  | oc create configmap nvidia-dcgm-exporter-dashboard \
-	      -n openshift-config-managed \
-	      --from-file=dcgm-exporter-dashboard.json=/dev/fd/0
+		  -n openshift-config-managed \
+		  --from-file=dcgm-exporter-dashboard.json=/dev/fd/0
 	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
 	  console.openshift.io/dashboard=true --overwrite
 	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
@@ -64,9 +64,9 @@ setup-llmd:
 	@$(BASE)/scripts/check-operator-install-status.sh leader-worker-set openshift-lws-operator 
 	@echo "Set LeaderWorkerSet operator to be upgraded manually instead of automatic"
 	@oc patch subscription leader-worker-set \
-    -n openshift-lws-operator   \
-    --type=merge \
-    -p '{"spec": {"installPlanApproval": "Manual"}}'
+	-n openshift-lws-operator   \
+	--type=merge \
+	-p '{"spec": {"installPlanApproval": "Manual"}}'
 
 	oc apply -f $(BASE)/yaml/rhoai/lws-cr.yaml
 
@@ -79,15 +79,15 @@ setup-llmd:
 
 	@echo "Set Red Hat Connectivity Link operator to be upgraded manually instead of automatic"
 	@oc patch subscription rhcl-operator \
-    -n openshift-operators   \
-    --type=merge \
-    -p '{"spec": {"installPlanApproval": "Manual"}}'
+	-n openshift-operators   \
+	--type=merge \
+	-p '{"spec": {"installPlanApproval": "Manual"}}'
 
 	@echo "Set Authorino operator to be upgraded manually instead of automatic"
 	@oc patch subscription authorino-operator-stable-redhat-operators-openshift-marketplace \
-    -n openshift-operators   \
-    --type=merge \
-    -p '{"spec": {"installPlanApproval": "Manual"}}'
+	-n openshift-operators   \
+	--type=merge \
+	-p '{"spec": {"installPlanApproval": "Manual"}}'
 
 	@echo "Set DNS operator to be upgraded manually instead of automatic"
 	@oc patch subscription dns-operator-stable-redhat-operators-openshift-marketplace \
@@ -107,7 +107,7 @@ setup-llmd:
 	oc annotate svc/authorino-authorino-authorization service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert -n kuadrant-system
 
 	@until oc get secret/authorino-server-cert -n kuadrant-system >/dev/null 2>&1; do \
-    	echo "Wait until secret/authorino-server-cert is ready..."; \
+		echo "Wait until secret/authorino-server-cert is ready..."; \
 		sleep 10; \
 	done	
 	
@@ -184,7 +184,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
 
- 	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
+	 oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
 .PHONY: setup-ai-playground
 setup-ai-playground:
@@ -201,7 +201,7 @@ setup-ai-playground:
 	@oc apply -f $(BASE)/yaml/demo/llama-stack-cm.yaml -n ${NAMESPACE}
 	@oc apply -f $(BASE)/yaml/demo/lsd.yaml -n ${NAMESPACE}
 
- 	oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
+	 oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
 	oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}
 
 .PHONY: download-models
