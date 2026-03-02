@@ -46,9 +46,12 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 
 	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
 	@curl -L https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json \
-	  | oc create configmap nvidia-dcgm-exporter-dashboard \
-		  -n openshift-config-managed \
-		  --from-file=dcgm-exporter-dashboard.json=/dev/fd/0
+	| oc create configmap nvidia-dcgm-exporter-dashboard \
+		-n openshift-config-managed \
+		--from-file=dcgm-exporter-dashboard.json=/dev/fd/0 \
+		--dry-run=client -o yaml \
+	| oc apply -f -
+
 	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
 	  console.openshift.io/dashboard=true --overwrite
 	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
