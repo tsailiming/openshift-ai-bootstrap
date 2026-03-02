@@ -53,9 +53,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 	| oc apply -f -
 
 	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
-	  console.openshift.io/dashboard=true --overwrite
-	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
-	  console.openshift.io/odc-dashboard=true --overwrite
+	  console.openshift.io/dashboard=true --overwrite	
 
 .PHONY: setup-llmd
 setup-llmd:
@@ -130,7 +128,7 @@ teardown-llmd:
 
 	-oc delete -f $(BASE)/yaml/rhoai/authorino.yaml
 	-oc delete -f $(BASE)/yaml/rhoai/kuadrant-cr.yaml
-	-oc delete -f $(BASE)/yaml/rhoai/gateway.yaml.tmpl 
+	-oc delete -f $(BASE)/yaml/rhoai/gateway.yaml.tmpl
 
 	-oc delete subscription authorino-operator-stable-redhat-operators-openshift-marketplace -n openshift-operators
 	-oc delete subscription dns-operator-stable-redhat-operators-openshift-marketplace -n  openshift-operators
@@ -187,7 +185,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	@oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
 
-	 oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
+	@oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
 .PHONY: setup-ai-playground
 setup-ai-playground:
@@ -195,7 +193,7 @@ setup-ai-playground:
 	@$(BASE)/scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
 	
 	@echo "Downloading and deploying Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
-	@$(BASE)/scripts/download-model.sh s3 Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
+	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
 	@$(BASE)/scripts/serve-model.sh pvc qwen3-30b-a3b-thinking-2507-fp8 Qwen/Qwen3-30B-A3B-Thinking-2507-FP8 "--max-model-len 32768 --enable-auto-tool-choice --reasoning-parser=deepseek_r1 --tool-call-parser=hermes"
 
 	@oc apply -f $(BASE)/yaml/demo/mcp-kubernetes.yaml -n ${NAMESPACE}
@@ -204,8 +202,8 @@ setup-ai-playground:
 	@oc apply -f $(BASE)/yaml/demo/llama-stack-cm.yaml -n ${NAMESPACE}
 	@oc apply -f $(BASE)/yaml/demo/lsd.yaml -n ${NAMESPACE}
 
-	 oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
-	oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}
+	@oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
+	@oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}
 
 .PHONY: download-models
 download-models:
