@@ -15,7 +15,7 @@ objects:
     metadata:
       annotations:
         opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
-        opendatahub.io/runtime-version: v0.11.2
+        opendatahub.io/runtime-version: v0.14.1
         openshift.io/display-name: RHAIIS NVIDIA GPU ServingRuntime for KServe
         opendatahub.io/apiProtocol: REST
       labels:
@@ -37,7 +37,7 @@ objects:
           env:
             - name: HF_HOME
               value: /tmp/hf_home
-          image: 'registry.redhat.io/rhaiis/vllm-cuda-rhel9:3.2.5'
+          image: 'registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.4.0-ea.1'
           name: kserve-container
           ports:
             - containerPort: 8080
