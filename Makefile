@@ -46,7 +46,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 
 	@echo "Installing grafana operator"
 	@oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
-	@$(BASE)/scripts/check-operator-install-status.sh grafana-operator oopenshift-marketplace
+	@$(BASE)/scripts/check-operator-install-status.sh grafana user-grafana
 
 	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
 	@curl -L https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json \
