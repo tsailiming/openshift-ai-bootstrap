@@ -217,9 +217,9 @@ download-models:
 	@echo "Downloading openai/gpt-oss-20b"
 	@$(BASE)/scripts/download-model.sh s3 openai/gpt-oss-20b
 
-	@echo "Downloading RedHatAI/whisper-large-v3-turbo-FP8-dynamic"
-	@$(BASE)/scripts/download-model.sh s3 RedHatAI/whisper-large-v3-turbo-FP8-dynamic
-
+	@echo "Downloading Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
+	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
+	
 .PHONY: teardown-namespace
 teardown-namespace:
 	-oc delete project $(NAMESPACE)
