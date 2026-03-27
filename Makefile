@@ -305,7 +305,7 @@ deploy-pipline: teardown-pipeline
 
 .PHONY: setup-kueue-demo
 setup-kueue-demo:
-	@oc apply -k "github.com/tsailiming/openshift-ai-kueue//yaml?ref=main
+	@oc apply -k "github.com/tsailiming/openshift-ai-kueue//yaml?ref=main"
 
 .PHONY: setup-multi-user
 setup-multi-user:
