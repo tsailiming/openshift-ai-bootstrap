@@ -18,6 +18,8 @@ spec:
       registriesNamespace: rhoai-model-registries
     feastoperator:
       managementState: Managed
+    mlflowoperator:
+      managementState: Managed      
     trustyai:
       eval:
         lmeval:
@@ -40,4 +42,6 @@ spec:
     llamastackoperator:
       managementState: Managed
     trainingoperator:
+      managementState: Managed
+    sparkoperator:
       managementState: Managed

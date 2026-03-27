@@ -26,6 +26,7 @@ Additionally, it demonstrates benchmarking, integration with OpenAI-compatible e
 
 | Date | Description |
 | :---- | :---- |
+| 26 Mar 2026 | Based on RHOAI 3.4 EA1 and RHAIIS 3.4 EA1 |
 | 4 Feb 2026 | Based on RHOAI 3.2 and RHAIIS 3.2.5 |
 | 23 Nov 2025 | Based on RHOAI 3.0 and RHAIIS 3.2.3 |
 | 30 Aug 2025 | Based on RHOAI 2.23 and RHAIIS 3.2.1 |
