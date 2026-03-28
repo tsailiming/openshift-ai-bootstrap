@@ -184,7 +184,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 	@oc apply -f $(BASE)/yaml/demo/guidellm.yaml  -n ${NAMESPACE}
 	@oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml -n ${NAMESPACE}
 	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/mlflow.yaml
+	@oc apply -f $(BASE)/yaml/rhoai/mlflow.yaml
 	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
 	@oc set env deploy/open-webui ENABLE_PERSISTENT_CONFIG=False -n ${NAMESPACE}
 	@oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
