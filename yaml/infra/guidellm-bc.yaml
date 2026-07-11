@@ -1,0 +1,26 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: guidellm
+  namespace: demo
+spec:
+  source:
+    type: Binary
+    binary: {}
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: guidellm:latest
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: guidellm
+  namespace: demo
+spec: {}
