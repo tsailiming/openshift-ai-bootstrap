@@ -12,7 +12,7 @@ RUN curl -L -o openshift-client.tar.gz https://mirror.openshift.com/pub/openshif
     chmod 755 /opt/app-root/bin/oc /opt/app-root/bin/kubectl
 
 RUN curl -L -o /opt/app-root/bin/jq \
-    https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64 && \
+    https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-linux-amd64 && \
     chmod 755 /opt/app-root/bin/jq
     
 RUN curl -L -o /opt/app-root/bin/mc \
