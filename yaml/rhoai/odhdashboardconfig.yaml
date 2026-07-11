@@ -1,13 +1,12 @@
 apiVersion: opendatahub.io/v1alpha
-kind: OdhDashboardConfig
+kind: o
 metadata:
   annotations:
     internal.config.kubernetes.io/previousKinds: OdhDashboardConfig
     internal.config.kubernetes.io/previousNames: odh-dashboard-config
     internal.config.kubernetes.io/previousNamespaces: default
     platform.opendatahub.io/instance.name: default-dashboard    
-    platform.opendatahub.io/type: OpenShift AI Self-Managed
-    platform.opendatahub.io/version: 3.0.0
+    platform.opendatahub.io/type: OpenShift AI Self-Managed    
   name: odh-dashboard-config
   namespace: redhat-ods-applications
   labels:
@@ -22,7 +21,10 @@ spec:
     modelAsService: true
     disablePerformanceMetrics: false
     disableKServeMetrics: false
-    disableKueue: false
+    disableKueue: false   
+    vLLMDeploymentOnMaaS: true
+    observabilityDashboard: true
+    disableLMEval: false
   hardwareProfileOrder: []
   notebookController:
     enabled: true

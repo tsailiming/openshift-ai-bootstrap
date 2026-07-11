@@ -6,7 +6,7 @@ RUN pip install --upgrade huggingface_hub
 # Set working directory
 WORKDIR /tmp
 
-RUN curl -L -o openshift-client.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.19/openshift-client-linux.tar.gz && \
+RUN curl -L -o openshift-client.tar.gz https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable-4.20/openshift-client-linux.tar.gz && \
     tar -xzf openshift-client.tar.gz && \
     cp oc kubectl /opt/app-root/bin/ && \
     chmod 755 /opt/app-root/bin/oc /opt/app-root/bin/kubectl

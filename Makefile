@@ -2,52 +2,95 @@ BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 SHELL=/bin/sh
 NAMESPACE=demo
 
-.PHONY: setup-rhoai
-setup-rhoai: add-gpu-operator add-nfs-provisioner
+.PHONY: rhoai-prereq
+rhoai-prereq:
+	@echo "Installing kueue operator"
 	oc apply -f $(BASE)/yaml/rhoai/kueue.yaml
-	
-	@$(BASE)/scripts/check-operator-install-status.sh kueue-operator openshift-kueue-operator
-	
+	@$(BASE)/scripts/check-operator-install-status.sh kueue-operator openshift-kueue-operator	
 	oc apply -f $(BASE)/yaml/rhoai/kueue-cr.yaml
 	
-	@echo "Set Red Hat build of Kueue operator to be upgraded manually instead of automatic"
-	@oc patch subscription kueue-operator \
-	-n openshift-kueue-operator \
-	--type=merge \
-	-p '{"spec": {"installPlanApproval": "Manual"}}'
+	@echo "Installing leader worker set operator"
+	oc apply -f $(BASE)/yaml/rhoai/lws.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh leader-worker-set openshift-lws-operator 
+	
+	@echo "Installing leader jobset operator"
+	oc apply -f $(BASE)/yaml/rhoai/jobset.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh job-set openshift-jobset-operator
+	oc apply -f $(BASE)/yaml/rhoai/jobset-cr.yaml
 
+	@echo "Enabling user workload monitoring"
+	oc apply -f ${BASE}/yaml/rhoai/uwm.yaml
+	
+	@echo "Installing cluster observability operator"
+	oc apply -f $(BASE)/yaml/rhoai/coo.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh cluster-observability-operator openshift-cluster-observability-operator
+
+	@echo "Installing tempo operator"
+	oc apply -f $(BASE)/yaml/rhoai/tempo.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh tempo-product openshift-tempo-operator
+
+	@echo "Installing otel operator"
+	oc apply -f ${BASE}/yaml/rhoai/otel.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh opentelemetry-product openshift-opentelemetry-operator
+
+	
+.PHONY: setup-rhoai
+setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
+	
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh rhods-operator redhat-ods-operator
 	@until oc get DSCInitialization/default-dsci -o jsonpath='{.status.conditions[?(@.type=="Available")].status}' | grep -q "True"; do \
 		echo "Waiting for DSCInitialization to be ready..."; \
 		sleep 10; \
 	done
 	
+	@oc patch dsci default-dsci --type=merge \
+	-p '{"spec":{"monitoring":{"managementState":"Managed","namespace":"redhat-ods-monitoring","alerting":{},"metrics":{"replicas":1,"resources":{"cpulimit":"500m","cpurequest":"100m","memorylimit":"512Mi","memoryrequest":"256Mi"},"storage":{"size":"5Gi","retention":"90d"},"exporters":{}},"traces":{"sampleRatio":"0.1","storage":{"backend":"pv","retention":"2160h"},"exporters":{}}}}}'
+
+	oc rollout restart deployment/rhods-operator -n redhat-ods-operator
+	oc rollout status deployment/rhods-operator -n redhat-ods-operator
+
+	@CSV=$$(oc get subscription rhods-operator -n redhat-ods-operator -o jsonpath='{.status.installedCSV}' 2>/dev/null); \
+	if [ -z "$$CSV" ]; then \
+		echo "No installed CSV found for subscription rhods-operator"; \
+		exit 1; \
+	fi; \
+	oc patch csv "$$CSV" -n redhat-ods-operator --type=json \
+		-p="[{\"op\":\"replace\",\"path\":\"/spec/install/spec/deployments/0/spec/replicas\",\"value\":1}]";	
+
 	oc apply -f ${BASE}/yaml/rhoai/rhoai-cr.yaml	
 	@until oc get DataScienceCluster/default-dsc -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep -q "True"; do \
 		echo "Waiting for DataScienceCluster to be ready..."; \
 		sleep 10; \
 	done
+	
+	oc scale deployment rhods-dashboard \
+		-n redhat-ods-applications \
+		--replicas=1
 
-	@echo "Set RHOAI operator to be upgraded manually instead of automatic"
-	@oc patch subscription rhods-operator \
-	-n redhat-ods-operator \
-	--type=merge \
-	-p '{"spec": {"installPlanApproval": "Manual"}}'
+	oc scale deployment rhods-operator \
+		-n redhat-ods-operator \
+		--replicas=1
 
 	oc apply -f ${BASE}/yaml/rhoai/odhdashboardconfig.yaml
 
-	oc delete pods -l app=rhods-dashboard -n redhat-ods-applications
+	oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
 	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
 
 	#oc apply -f ${BASE}/yaml/rhoai/group.yaml
 	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
-	oc apply -f ${BASE}/yaml/rhoai/uwm.yaml
-
+	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
+	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml
+	
 	@echo "Installing grafana operator"
-	@oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
+	oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh grafana user-grafana
-
+	
+	@echo "Installing Red Hat Connectivity Link"
+	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
+	
 	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
 	@curl -L https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json \
 	| oc create configmap nvidia-dcgm-exporter-dashboard \
@@ -56,106 +99,39 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner
 		--dry-run=client -o yaml \
 	| oc apply -f -
 
-	@oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
+	oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
 	  console.openshift.io/dashboard=true --overwrite	
-
-.PHONY: setup-llmd
-setup-llmd:
-	# https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/3.0/html/deploying_models/deploying_models#deploying-models-using-distributed-inference_rhoai-user
-	@CLUSTER_DOMAIN=$$(oc get ingresscontroller default -n openshift-ingress-operator -o jsonpath='{.status.domain}')  2>/dev/null \
-		envsubst < $(BASE)/yaml/rhoai/gateway.yaml.tmpl | oc apply -f -
-	oc apply -f $(BASE)/yaml/rhoai/lws.yaml
-
-	@$(BASE)/scripts/check-operator-install-status.sh leader-worker-set openshift-lws-operator 
-	@echo "Set LeaderWorkerSet operator to be upgraded manually instead of automatic"
-	@oc patch subscription leader-worker-set \
-	-n openshift-lws-operator   \
-	--type=merge \
-	-p '{"spec": {"installPlanApproval": "Manual"}}'
-
-	oc apply -f $(BASE)/yaml/rhoai/lws-cr.yaml
-
-	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
-
-	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
-	@$(BASE)/scripts/check-operator-install-status.sh authorino-operator-stable-redhat-operators-openshift-marketplace openshift-operators
-	@$(BASE)/scripts/check-operator-install-status.sh dns-operator-stable-redhat-operators-openshift-marketplace openshift-operators
-	@$(BASE)/scripts/check-operator-install-status.sh limitador-operator-stable-redhat-operators-openshift-marketplace openshift-operators
-
-	@echo "Set Red Hat Connectivity Link operator to be upgraded manually instead of automatic"
-	@oc patch subscription rhcl-operator \
-	-n openshift-operators   \
-	--type=merge \
-	-p '{"spec": {"installPlanApproval": "Manual"}}'
-
-	@echo "Set Authorino operator to be upgraded manually instead of automatic"
-	@oc patch subscription authorino-operator-stable-redhat-operators-openshift-marketplace \
-	-n openshift-operators   \
-	--type=merge \
-	-p '{"spec": {"installPlanApproval": "Manual"}}'
-
-	@echo "Set DNS operator to be upgraded manually instead of automatic"
-	@oc patch subscription dns-operator-stable-redhat-operators-openshift-marketplace \
-		-n openshift-operators \
-		--type=merge \
-		-p '{"spec": {"installPlanApproval": "Manual"}}'
-
-	@echo "Set Limitador operator to be upgraded manually instead of automatic"
-	@oc patch subscription limitador-operator-stable-redhat-operators-openshift-marketplace \
-		-n openshift-operators \
-		--type=merge \
-		-p '{"spec": {"installPlanApproval": "Manual"}}'
-		
-	oc apply -f $(BASE)/yaml/rhoai/kuadrant-cr.yaml
-	oc wait Kuadrant -n kuadrant-system kuadrant --for=condition=Ready --timeout=10m
-
-	oc annotate svc/authorino-authorino-authorization service.beta.openshift.io/serving-cert-secret-name=authorino-server-cert -n kuadrant-system
-
-	@until oc get secret/authorino-server-cert -n kuadrant-system >/dev/null 2>&1; do \
-		echo "Wait until secret/authorino-server-cert is ready..."; \
-		sleep 10; \
-	done	
 	
-	oc apply -f $(BASE)/yaml/rhoai/authorino.yaml
-	oc wait --for=condition=ready pod -l authorino-resource=authorino -n kuadrant-system --timeout 150s
+.PHONY: setup-maas
+setup-maas:
 
-	oc delete pod -n redhat-ods-applications -l app=odh-model-controller
-	oc delete pod -n redhat-ods-applications -l control-plane=kserve-controller-manager
-	oc wait --for=condition=ready pod -n redhat-ods-applications -l app=odh-model-controller --timeout 150s
-	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
 
-	oc apply -k "github.com/pierdipi/kserve//config/dashboards-odc?ref=example-dashboards"
-	oc apply -f $(BASE)/yaml/rhoai/llmd-grafana-dashboard.yaml
-
-.PHONY: teardown-llmd
-teardown-llmd:
-
-	-oc delete -f $(BASE)/yaml/rhoai/authorino.yaml
-	-oc delete -f $(BASE)/yaml/rhoai/kuadrant-cr.yaml
-	-oc delete -f $(BASE)/yaml/rhoai/gateway.yaml.tmpl
-
-	-oc delete subscription authorino-operator-stable-redhat-operators-openshift-marketplace -n openshift-operators
-	-oc delete subscription dns-operator-stable-redhat-operators-openshift-marketplace -n  openshift-operators
-	-oc delete subscription limitador-operator-stable-redhat-operators-openshift-marketplace -n  openshift-operators
-	-oc delete -f $(BASE)/yaml/rhoai/kuadrant.yaml
-
-	-oc delete secret/authorino-server-cert -n kuadrant-system 
-	-oc delete csv rhcl-operator.v1.2.0 -n openshift-operators
-	-oc delete csv dns-operator.v1.2.0 -n openshift-operators
-	-oc delete csv limitador-operator.v1.2.0 -n openshift-operators
-	-oc delete csv authorino-operator.v1.2.4 -n openshift-operators
-
-	-oc delete -f $(BASE)/yaml/rhoai/lws-cr.yaml
-	-oc delete -f $(BASE)/yaml/rhoai/lws.yaml
-
-	oc delete pod -n redhat-ods-applications -l app=odh-model-controller
-	oc delete pod -n redhat-ods-applications -l control-plane=kserve-controller-manager
-
-	-oc delete -k "github.com/pierdipi/kserve//config/dashboards-odc?ref=example-dashboards"
-	-oc delete -f $(BASE)/yaml/rhoai/llmd-grafana-dashboard.yaml
-
-	oc wait --for=condition=ready pod -n redhat-ods-applications -l app=odh-model-controller --timeout 150s
-	oc wait --for=condition=ready pod -n redhat-ods-applications -l control-plane=kserve-controller-manager --timeout 150s
+	@set -eu; \
+	TMPDIR=$$(mktemp -d); \
+	echo "TMPDIR=$$TMPDIR"; \
+	TMP_KUBECONFIG="$$TMPDIR/kubeconfig"; \
+	trap 'rm -rf "$$TMPDIR"' EXIT; \
+	\
+	SERVER=$$(oc whoami --show-server); \
+	\
+	if TOKEN=$$(oc whoami -t 2>/dev/null); then \
+		echo "Using existing OAuth token"; \
+	else \
+		echo "No OAuth token found. Creating cluster-admin ServiceAccount token..."; \
+		TOKEN=$$($(BASE)/scripts/get-token.sh); \
+		export KUBECONFIG="$$TMP_KUBECONFIG"; \
+		oc login \
+			--token="$$TOKEN" \
+			--server="$$SERVER" \
+			--insecure-skip-tls-verify=true; \
+	fi; \
+	\
+	echo "Cloning repository..."; \
+	git clone https://github.com/rh-aiservices-bu/rhoai-maas-guide.git "$$TMPDIR/rhoai-maas-guide"; \
+	\
+	echo "Running setup-maas.sh..."; \
+	cd "$$TMPDIR/rhoai-maas-guide"; \
+	./scripts/setup-maas.sh
 
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
@@ -177,49 +153,51 @@ add-gpu-operator:
 .PHONY: setup-demo
 setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
-	@oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
-	@oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml
+	oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
+	oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml
 	#@oc apply -f $(BASE)/yaml/demo/anythingllm-wb.yaml 
 	#@oc apply -f $(BASE)/yaml/demo/llama-cpp-wb.yaml
-	@oc apply -f $(BASE)/yaml/demo/guidellm.yaml  -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/rhoai/mlflow.yaml
-	@oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
-	@oc set env deploy/open-webui ENABLE_PERSISTENT_CONFIG=False -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
+	oc apply -f $(BASE)/yaml/demo/guidellm.yaml  -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/benchmark-arena.yaml -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/ai-toolkit.yaml -n ${NAMESPACE}
+	oc apply -f https://raw.githubusercontent.com/tsailiming/openshift-open-webui/refs/heads/main/open-webui.yaml -n ${NAMESPACE}
+	oc set env deploy/open-webui ENABLE_PERSISTENT_CONFIG=False -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/custom-model-catalog.yaml
 
-	@oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
+	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
 .PHONY: setup-ai-playground
-setup-ai-playground:
-	@echo "Serving llama-32-3b-instruct"
-	@$(BASE)/scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
+setup-ai-playground: download-and-serve-models
+# 	@echo "Serving llama-32-3b-instruct"
+# 	@$(BASE)/scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
 	
-	@echo "Downloading and deploying Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
-	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
-	@$(BASE)/scripts/serve-model.sh pvc qwen3-30b-a3b-thinking-2507-fp8 Qwen/Qwen3-30B-A3B-Thinking-2507-FP8 "--max-model-len 32768 --enable-auto-tool-choice --reasoning-parser=deepseek_r1 --tool-call-parser=hermes"
+# 	@echo "Downloading and deploying Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
+# 	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
+# 	@$(BASE)/scripts/scripts/serve-model.sh pvc qwen3.5-35b-a3b-fp8-dynamic RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic/ "--max-model-len 32768 --trust-remote-code --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 --mm-encoder-tp-mode data"
 
-	@oc apply -f $(BASE)/yaml/demo/mcp-kubernetes.yaml -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/mcp-weather.yaml -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/lsd-mcp-cm.yaml
-	@oc apply -f $(BASE)/yaml/demo/llama-stack-cm.yaml -n ${NAMESPACE}
-	@oc apply -f $(BASE)/yaml/demo/lsd.yaml -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/mcp-kubernetes.yaml -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/mcp-weather.yaml -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/lsd-mcp-cm.yaml
+	oc apply -f $(BASE)/yaml/demo/llama-stack-cm.yaml -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/lsd.yaml -n ${NAMESPACE}
 
-	@oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
-	@oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}
+	oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
+	oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}
 
-.PHONY: download-models
-download-models:
-	@echo "Downloading Qwen/Qwen3-VL-8B-Instruct"
-	@$(BASE)/scripts/download-model.sh s3 Qwen/Qwen3-VL-8B-Instruct
+.PHONY: download-and-serve-models
+download-and-serve-models:
+	#@echo "Downloading RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic"
+	#@$(BASE)/scripts/download-model.sh pvc RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic
+	#@$(BASE)/scripts/serve-model.sh pvc qwen35-35b-A3b-fp8-dynamic RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic "--max-model-len 4096"
+
+	@echo "Downloading Qwen/Qwen3.5-27B-FP8"
+	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3.5-27B-FP8
+	@$(BASE)/scripts/serve-model.sh pvc qwen35-27b-fp8 Qwen/Qwen3.5-27B-FP8 "--max-model-len 2048 --gpu-memory-utilization 0.97 --kv-cache-dtype fp8"
 
 	@echo "Downloading openai/gpt-oss-20b"
-	@$(BASE)/scripts/download-model.sh s3 openai/gpt-oss-20b
+	@$(BASE)/scripts/download-model.sh pvc openai/gpt-oss-20b
+	@$(BASE)/scripts/serve-model.sh pvc gpt-oss-20b openai/gpt-oss-20b "--max-model-len 2048 --gpu-memory-utilization 0.97 --kv-cache-dtype fp8"
 
-	@echo "Downloading Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
-	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
-	
 .PHONY: teardown-namespace
 teardown-namespace:
 	-oc delete project $(NAMESPACE)

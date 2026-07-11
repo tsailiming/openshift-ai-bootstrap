@@ -2,19 +2,24 @@ apiVersion: llamastack.io/v1alpha1
 kind: LlamaStackDistribution
 metadata:
   annotations:
-    openshift.io/display-name: lsd-genai-playground  
+    openshift.io/display-name: lsd-genai-playground
   name: lsd-genai-playground  
   namespace: demo
   labels:
     opendatahub.io/dashboard: 'true'
 spec:
+  network:
+    allowedFrom:
+      namespaces:
+        - demo
+    exposeRoute: false
   replicas: 1
   server:
     containerSpec:
       command:
         - /bin/sh
         - '-c'
-        - llama stack run /etc/llama-stack/run.yaml
+        - llama stack run /etc/llama-stack/config.yaml
       env:
         - name: VLLM_TLS_VERIFY
           value: 'false'
@@ -34,7 +39,7 @@ spec:
       port: 8321
       resources:
         limits:
-          cpu: '4'
+          cpu: '2'
           memory: 12Gi
         requests:
           cpu: 250m

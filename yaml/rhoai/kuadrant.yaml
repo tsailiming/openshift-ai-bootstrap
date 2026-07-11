@@ -12,8 +12,8 @@ metadata:
   namespace: openshift-operators
 spec:
   channel: stable
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: rhcl-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: rhcl-operator.v1.2.0
+  startingCSV: rhcl-operator.v1.3.5

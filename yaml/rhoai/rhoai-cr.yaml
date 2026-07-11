@@ -1,25 +1,28 @@
 apiVersion: datasciencecluster.opendatahub.io/v2
 kind: DataScienceCluster
 metadata:
-  creationTimestamp: '2025-11-19T14:48:49Z'
-  generation: 1
   labels:
     app.kubernetes.io/name: datasciencecluster
   name: default-dsc  
 spec:
   components:
+    sparkoperator:
+      managementState: Removed
     kserve:
       managementState: Managed
-      nim:
+      modelsAsService:
         managementState: Managed
-      rawDeploymentServiceConfig: Headless
+      nim:
+        airGapped: false
+        managementState: Managed
+      rawDeploymentServiceConfig: Headed
+      wva:
+        managementState: Managed
     modelregistry:
       managementState: Managed
       registriesNamespace: rhoai-model-registries
     feastoperator:
       managementState: Managed
-    mlflowoperator:
-      managementState: Managed      
     trustyai:
       eval:
         lmeval:
@@ -27,6 +30,8 @@ spec:
           permitOnline: deny
       managementState: Managed
     aipipelines:
+      argoWorkflowsControllers:
+        managementState: Managed
       managementState: Managed
     ray:
       managementState: Managed
@@ -37,11 +42,13 @@ spec:
     workbenches:
       managementState: Managed
       workbenchNamespace: rhods-notebooks
+    mlflowoperator:
+      managementState: Managed
     dashboard:
+      managementState: Managed
+    trainer:
       managementState: Managed
     llamastackoperator:
       managementState: Managed
     trainingoperator:
-      managementState: Managed
-    sparkoperator:
       managementState: Managed

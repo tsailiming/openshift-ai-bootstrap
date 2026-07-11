@@ -2,17 +2,24 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: llama-stack-config
-  namespace: demo
+  namespace: demo  
   labels:
     llamastack.io/distribution: lsd-genai-playground
-    opendatahub.io/dashboard: 'true'  
+    opendatahub.io/dashboard: 'true'
+  ownerReferences:
+    - apiVersion: llamastack.io/v1alpha1
+      kind: LlamaStackDistribution
+      name: lsd-genai-playground
+      uid: 0295ed71-e242-4616-a7fc-59402665e23d
+      controller: true
+      blockOwnerDeletion: false  
 data:
-  run.yaml: |
+  config.yaml: |
     # Llama Stack Configuration
     version: "2"
-    image_name: rh
+    distro_name: rh
     apis:
-    - agents
+    - responses
     - datasetio
     - files
     - inference
@@ -29,16 +36,16 @@ data:
         provider_type: remote::vllm
         config:
           api_token: ${env.VLLM_API_TOKEN_1:=fake}
+          base_url: http://gpt-oss-20b-predictor.demo.svc.cluster.local:8080/v1
           max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
           tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-          url: http://llama-32-3b-instruct-predictor.demo.svc.cluster.local:8080/v1      
       - provider_id: vllm-inference-2
         provider_type: remote::vllm
         config:
           api_token: ${env.VLLM_API_TOKEN_2:=fake}
+          base_url: http://qwen3-5-35b-a3b-fp8-dynamic-predictor.demo.svc.cluster.local:8080/v1
           max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
           tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-          url: http://qwen3-30b-a3b-thinking-2507-fp8-predictor.demo.svc.cluster.local:8080/v1      
       vector_io:
       - provider_id: milvus
         provider_type: inline::milvus
@@ -47,9 +54,9 @@ data:
           persistence:
             backend: kv_default
             namespace: vector_io::milvus
-      agents:
-      - provider_id: meta-reference
-        provider_type: inline::meta-reference
+      responses:
+      - provider_id: builtin
+        provider_type: inline::builtin
         config:
           persistence:
             agent_state:
@@ -57,6 +64,8 @@ data:
               namespace: agents
             responses:
               backend: sql_default
+              max_write_queue_size: 10000
+              num_writers: 4
               table_name: responses
       eval: []
       files:
@@ -82,12 +91,13 @@ data:
         provider_type: inline::llm-as-judge
         config: {}
       tool_runtime:
-      - provider_id: rag-runtime
-        provider_type: inline::rag-runtime
+      - provider_id: file-search
+        provider_type: inline::file-search
         config: {}
       - provider_id: model-context-protocol
         provider_type: remote::model-context-protocol
         config: {}
+      safety: []
     metadata_store:
       type: sqlite
       db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
@@ -109,6 +119,11 @@ data:
         metadata:
           backend: kv_default
           namespace: registry
+    vector_stores:
+      default_provider_id: milvus
+      default_embedding_model:
+        provider_id: sentence-transformers
+        model_id: ibm-granite/granite-embedding-125m-english
     registered_resources:
       models:
       - provider_id: sentence-transformers
@@ -118,22 +133,22 @@ data:
         metadata:
           embedding_dimension: 768
       - provider_id: vllm-inference-1
-        model_id: llama-32-3b-instruct
+        model_id: gpt-oss-20b
         model_type: llm
+        max_tokens: 32768
         metadata:
-          display_name: llama-32-3b-instruct
+          display_name: gpt-oss-20b
       - provider_id: vllm-inference-2
-        model_id: qwen3-30b-a3b-thinking-2507-fp8
+        model_id: qwen3-5-35b-a3b-fp8-dynamic
         model_type: llm
+        max_tokens: 32768
         metadata:
-          display_name: qwen3-30b-a3b-thinking-2507-fp8      
+          description: ""
+          display_name: qwen3-5-35b-a3b-fp8-dynamic
       shields: []
-      vector_dbs: []
+      vector_stores: []
       datasets: []
       scoring_fns: []
       benchmarks: []
-      tool_groups:
-      - toolgroup_id: builtin::rag
-        provider_id: rag-runtime
     server:
       port: 8321

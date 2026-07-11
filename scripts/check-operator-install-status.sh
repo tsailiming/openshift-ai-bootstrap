@@ -51,47 +51,54 @@ else
     echo "✔️ InstallPlan already approved or auto-approved."
 fi
 
-# ------------------------------------------------------------
-# STEP 2 — Get CSV from subscription and wait for Succeeded
-# ------------------------------------------------------------
-echo "⏳ Waiting for Subscription to report installedCSV..."
-
-while true; do
-    CSV=$(oc get subscription "$SUB_NAME" -n "$NAMESPACE" -o jsonpath='{.status.installedCSV}' 2>/dev/null || true)
-
-    if [[ -n "$CSV" ]]; then
-        echo "📦 Target CSV: $CSV"
-        break
-    else
-        echo "   • installedCSV not yet populated (waiting...)"
-    fi
-
-    if (( $(date +%s) - start_time >= TIMEOUT )); then
-        echo "❌ Timeout waiting for installedCSV to appear"
-        exit 1
-    fi
-
-    sleep "$SLEEP"
-done
 
 echo "⏳ Waiting for CSV to reach phase: Succeeded..."
 
 while true; do
+
+    elapsed=$(( $(date +%s) - start_time ))
+
+    CSV=$(oc get subscription "$SUB_NAME" -n "$NAMESPACE" -o jsonpath='{.status.installedCSV}' 2>/dev/null || true)
+
+    if [[ -n "$CSV" ]]; then
+        echo "📦 Target CSV: $CSV"        
+    else
+        echo "   • installedCSV not yet populated (waiting...)"        
+
+        if (( elapsed >= TIMEOUT )); then
+            echo "❌ Timeout waiting for installedCSV to appear"
+            exit 1
+        else
+            sleep "$SLEEP"
+            continue
+        fi
+    fi
+
     PHASE=$(oc get csv "$CSV" -n "$NAMESPACE" \
             -o jsonpath='{.status.phase}' 2>/dev/null || echo "")
 
     if [[ "$PHASE" == "Succeeded" ]]; then
         echo "✅ CSV '$CSV' is Succeeded"
+
+        #oc patch subscription $SUB_NAME \
+        # -n $NAMESPACE \
+        # --type=merge \
+        # -p '{"spec": {"installPlanApproval": "Manual"}}'
+        # echo "✅ Patch subscription '$SUB_NAME' to manual update"
         exit 0
+
+    elif [[ "$PHASE" == "Failed" ]]; then
+        echo "❌ CSV '$CSV' entered Failed phase"       
+        exit 1    
     fi
 
     if [[ -n "$PHASE" ]]; then
         echo "   • phase: $PHASE (waiting...)"
     else
-        echo "   • CSV not visible yet (waiting...)"
+        echo "   • CSV not visible yet (waiting...)" # This should never happen
     fi
 
-    if (( $(date +%s) - start_time >= TIMEOUT )); then
+    if (( elapsed >= TIMEOUT )); then
         echo "❌ Timeout waiting for CSV to reach Succeeded"
         exit 1
     fi

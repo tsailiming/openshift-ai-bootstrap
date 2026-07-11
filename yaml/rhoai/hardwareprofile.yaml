@@ -51,7 +51,7 @@ spec:
       resourceType: Memory
     - defaultCount: 1
       displayName: Rebellions ATOM
-      identifier: rebellions.ai/ATOM
+      identifier: rebellions.ai/npu
       maxCount: 1
       minCount: 1
       resourceType: Accelerator

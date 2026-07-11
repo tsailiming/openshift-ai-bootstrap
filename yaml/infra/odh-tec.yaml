@@ -17,6 +17,10 @@ spec:
       labels:
         deployment: odh-tec      
     spec:
+      volumes:
+        - name: models-storage
+          persistentVolumeClaim:
+            claimName: models-pvc
       containers:
         - name: odh-tec
           image: 'quay.io/rh-aiservices-bu/odh-tec'
@@ -29,6 +33,9 @@ spec:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: models-storage
+              mountPath: /opt/app-root/src/data
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       dnsPolicy: ClusterFirst
