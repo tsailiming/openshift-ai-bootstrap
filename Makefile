@@ -33,6 +33,9 @@ rhoai-prereq:
 	oc apply -f ${BASE}/yaml/rhoai/otel.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh opentelemetry-product openshift-opentelemetry-operator
 
+	@echo "Installing Red Hat Connectivity Link"
+	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
 	
 .PHONY: setup-rhoai
 setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
@@ -85,11 +88,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	
 	@echo "Installing grafana operator"
 	oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
-	@$(BASE)/scripts/check-operator-install-status.sh grafana user-grafana
-	
-	@echo "Installing Red Hat Connectivity Link"
-	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
-	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
+	@$(BASE)/scripts/check-operator-install-status.sh grafana user-grafana	
 	
 	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
 	@curl -L https://raw.githubusercontent.com/NVIDIA/dcgm-exporter/main/grafana/dcgm-exporter-dashboard.json \
