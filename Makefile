@@ -24,7 +24,7 @@ rhoai-prereq:
 	@echo "Installing cluster observability operator"
 	oc apply -f $(BASE)/yaml/rhoai/coo.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh cluster-observability-operator openshift-cluster-observability-operator
-
+  
 	@echo "Installing tempo operator"
 	oc apply -f $(BASE)/yaml/rhoai/tempo.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh tempo-product openshift-tempo-operator
@@ -50,9 +50,6 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	@oc patch dsci default-dsci --type=merge \
 	-p '{"spec":{"monitoring":{"managementState":"Managed","namespace":"redhat-ods-monitoring","alerting":{},"metrics":{"replicas":1,"resources":{"cpulimit":"500m","cpurequest":"100m","memorylimit":"512Mi","memoryrequest":"256Mi"},"storage":{"size":"5Gi","retention":"90d"},"exporters":{}},"traces":{"sampleRatio":"0.1","storage":{"backend":"pv","retention":"2160h"},"exporters":{}}}}}'
 
-	oc rollout restart deployment/rhods-operator -n redhat-ods-operator
-	oc rollout status deployment/rhods-operator -n redhat-ods-operator
-
 	@CSV=$$(oc get subscription rhods-operator -n redhat-ods-operator -o jsonpath='{.status.installedCSV}' 2>/dev/null); \
 	if [ -z "$$CSV" ]; then \
 		echo "No installed CSV found for subscription rhods-operator"; \
@@ -61,33 +58,40 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	oc patch csv "$$CSV" -n redhat-ods-operator --type=json \
 		-p="[{\"op\":\"replace\",\"path\":\"/spec/install/spec/deployments/0/spec/replicas\",\"value\":1}]";	
 
-	oc apply -f ${BASE}/yaml/rhoai/rhoai-cr.yaml	
+	@oc scale deployment rhods-operator \
+		-n redhat-ods-operator \
+		--replicas=1
+	@oc rollout restart deployment/rhods-operator -n redhat-ods-operator
+	@oc rollout status deployment/rhods-operator -n redhat-ods-operator
+	
+	@oc apply -f ${BASE}/yaml/rhoai/rhoai-cr.yaml	
 	@until oc get DataScienceCluster/default-dsc -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' | grep -q "True"; do \
 		echo "Waiting for DataScienceCluster to be ready..."; \
 		sleep 10; \
 	done
+
+	@oc apply -f ${BASE}/yaml/rhoai/odhdashboardconfig.yaml
 	
-	oc scale deployment rhods-dashboard \
+	@echo "Waiting for deployment/rhods-dashboard to appear..."
+	@until oc get deployment/rhods-dashboard -n redhat-ods-applications >/dev/null 2>&1; do \
+		sleep 2; \
+	done
+	@echo "deployment/rhods-dashboard found. Restarting..."
+
+	@oc scale deployment rhods-dashboard \
 		-n redhat-ods-applications \
 		--replicas=1
-
-	oc scale deployment rhods-operator \
-		-n redhat-ods-operator \
-		--replicas=1
-
-	oc apply -f ${BASE}/yaml/rhoai/odhdashboardconfig.yaml
-
-	oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
-	oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
-
-	#oc apply -f ${BASE}/yaml/rhoai/group.yaml
+	
+	@oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
+	@oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
+	
 	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
 	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml
 	
 	@echo "Installing grafana operator"
-	oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
+	@oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh grafana user-grafana	
 	
 	@echo "Configuring the NVIDIA DCGM Exporter Dashboard"
@@ -103,8 +107,6 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	
 .PHONY: setup-maas
 setup-maas:
-
-
 	@set -eu; \
 	TMPDIR=$$(mktemp -d); \
 	echo "TMPDIR=$$TMPDIR"; \
@@ -130,7 +132,7 @@ setup-maas:
 	\
 	echo "Running setup-maas.sh..."; \
 	cd "$$TMPDIR/rhoai-maas-guide"; \
-	./scripts/setup-maas.sh
+	./scripts/setup-maas.sh 
 
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
@@ -166,7 +168,7 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
 .PHONY: setup-ai-playground
-setup-ai-playground: download-and-serve-models
+setup-ai-playground: 
 # 	@echo "Serving llama-32-3b-instruct"
 # 	@$(BASE)/scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
 	
@@ -178,7 +180,7 @@ setup-ai-playground: download-and-serve-models
 	oc apply -f $(BASE)/yaml/demo/mcp-weather.yaml -n ${NAMESPACE}
 	oc apply -f $(BASE)/yaml/demo/lsd-mcp-cm.yaml
 	oc apply -f $(BASE)/yaml/demo/llama-stack-cm.yaml -n ${NAMESPACE}
-	oc apply -f $(BASE)/yaml/demo/lsd.yaml -n ${NAMESPACE}
+	oc apply -f $(BASE)/yaml/demo/ogx-ai-playground.yaml -n ${NAMESPACE}
 
 	oc delete pod -l app=llama-stack -n ${NAMESPACE} --ignore-not-found  
 	oc rollout status deployment/lsd-genai-playground -n ${NAMESPACE}

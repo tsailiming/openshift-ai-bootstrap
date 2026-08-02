@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # GPT created
+# This script does not automatically approve upgrades so the operator will maintain
+# the starting CSV version as defined in the subscription
 set -euo pipefail
 
 SUB_NAME="$1"
@@ -35,22 +37,38 @@ while true; do
     sleep "$SLEEP"
 done
 
-# Fetch approval details
-APPROVAL_MODE=$(oc get installplan "$IP_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.approval}')
-APPROVED=$(oc get installplan "$IP_NAME" -n "$NAMESPACE" -o jsonpath='{.spec.approved}')
+CSV=$(oc get subscription "$SUB_NAME" -n "$NAMESPACE" -o jsonpath='{.status.installedCSV}' 2>/dev/null || true)
 
-echo "   • approval mode: $APPROVAL_MODE"
-echo "   • approved: $APPROVED"
-
-# Approve if needed
-if [[ "$APPROVAL_MODE" == "Manual" && "$APPROVED" == "false" ]]; then
-    echo "📝 InstallPlan requires manual approval → approving..."
-    oc patch installplan "$IP_NAME" -n "$NAMESPACE" \
-        --type merge -p '{"spec":{"approved":true}}'
-else
-    echo "✔️ InstallPlan already approved or auto-approved."
+CSV_PHASE=""
+if [[ -n "$CSV" ]]; then
+    CSV_PHASE=$(oc get csv "$CSV" -n "$NAMESPACE" \
+        -o jsonpath='{.status.phase}' 2>/dev/null || true)
 fi
 
+echo "   • installedCSV: ${CSV:-<missing>}"
+echo "   • CSV phase: ${CSV_PHASE:-<missing>}"
+
+# Approve if CSV is missing or has not succeeded
+if [[ -z "$CSV" || "$CSV_PHASE" != "Succeeded" ]]; then
+    APPROVAL_MODE=$(oc get installplan "$IP_NAME" -n "$NAMESPACE" \
+        -o jsonpath='{.spec.approval}' 2>/dev/null || true)
+    APPROVED=$(oc get installplan "$IP_NAME" -n "$NAMESPACE" \
+        -o jsonpath='{.spec.approved}' 2>/dev/null || true)
+
+    echo "   • approval mode: $APPROVAL_MODE"
+    echo "   • approved: $APPROVED"
+
+    if [[ "$APPROVAL_MODE" == "Manual" && "$APPROVED" != "true" ]]; then
+        echo "📝 InstallPlan requires manual approval → approving..."
+        oc patch installplan "$IP_NAME" -n "$NAMESPACE" \
+            --type merge -p '{"spec":{"approved":true}}'
+    else
+        echo "✔️ InstallPlan already approved or auto-approved."        
+    fi
+else
+    echo "✔️ CSV exists and is Succeeded → nothing to do anymore."
+    exit 0
+fi
 
 echo "⏳ Waiting for CSV to reach phase: Succeeded..."
 
@@ -78,13 +96,7 @@ while true; do
             -o jsonpath='{.status.phase}' 2>/dev/null || echo "")
 
     if [[ "$PHASE" == "Succeeded" ]]; then
-        echo "✅ CSV '$CSV' is Succeeded"
-
-        #oc patch subscription $SUB_NAME \
-        # -n $NAMESPACE \
-        # --type=merge \
-        # -p '{"spec": {"installPlanApproval": "Manual"}}'
-        # echo "✅ Patch subscription '$SUB_NAME' to manual update"
+        echo "✅ CSV '$CSV' is Succeeded"s
         exit 0
 
     elif [[ "$PHASE" == "Failed" ]]; then

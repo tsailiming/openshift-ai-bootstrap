@@ -21,4 +21,4 @@ spec:
   installPlanApproval: Manual
   name: rhods-operator
   source: redhat-operators
-  sourceNamespace: openshift-marketplace
+  sourceNamespace: openshift-marketplace  

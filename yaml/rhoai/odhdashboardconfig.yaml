@@ -1,5 +1,5 @@
 apiVersion: opendatahub.io/v1alpha
-kind: o
+kind: OdhDashboardConfig
 metadata:
   annotations:
     internal.config.kubernetes.io/previousKinds: OdhDashboardConfig
@@ -16,15 +16,20 @@ metadata:
     platform.opendatahub.io/part-of: dashboard
 spec:
   dashboardConfig:
+    disableKServeMetrics: false
+    disableLMEval: false
+    disableModelCatalog: false
+    disableModelRegistry: false
     disableTracking: false
     genAiStudio: true
+    autorag: true
+    automl: true
+    maasAuthPolicies: true
     modelAsService: true
-    disablePerformanceMetrics: false
-    disableKServeMetrics: false
-    disableKueue: false   
-    vLLMDeploymentOnMaaS: true
     observabilityDashboard: true
-    disableLMEval: false
+    disablePerformanceMetrics: false
+    disableKueue: false   
+    vLLMDeploymentOnMaaS: true    
   hardwareProfileOrder: []
   notebookController:
     enabled: true

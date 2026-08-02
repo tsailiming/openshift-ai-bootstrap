@@ -1,4 +1,3 @@
----
 apiVersion: v1
 kind: Namespace
 metadata:  
@@ -8,13 +7,13 @@ apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:  
   name: openshift-opentelemetry-operator
-  namespace: openshift-opentelemetry-operator  
+  namespace: openshift-opentelemetry-operator
 spec:
   upgradeStrategy: Default
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
-metadata:
+metadata:  
   name: opentelemetry-product
   namespace: openshift-opentelemetry-operator
 spec:

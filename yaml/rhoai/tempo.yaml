@@ -15,15 +15,12 @@ spec:
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  labels:
-    operators.coreos.com/opentelemetry-product.openshift-opentelemetry-operator: ""
-  name: opentelemetry-product
-  namespace: openshift-opentelemetry-operator
-  
+  name: tempo-product
+  namespace: openshift-tempo-operator  
 spec:
   channel: stable
   installPlanApproval: Manual
-  name: opentelemetry-product
+  name: tempo-product
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: opentelemetry-operator.v0.144.0-1
+  startingCSV: tempo-operator.v0.21.0-3

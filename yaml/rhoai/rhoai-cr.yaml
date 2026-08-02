@@ -11,7 +11,7 @@ spec:
     kserve:
       managementState: Managed
       modelsAsService:
-        managementState: Managed
+        managementState: Removed
       nim:
         airGapped: false
         managementState: Managed
@@ -48,7 +48,7 @@ spec:
       managementState: Managed
     trainer:
       managementState: Managed
-    llamastackoperator:
+    ogx:
       managementState: Managed
     trainingoperator:
       managementState: Managed
