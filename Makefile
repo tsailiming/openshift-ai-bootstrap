@@ -1,6 +1,8 @@
 BASE:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 SHELL=/bin/sh
 NAMESPACE=demo
+RHAIIS_IMAGE=registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.5.0-ea.2
+RHAIIS_VLLM_VERSION=0.19.1
 
 .PHONY: rhoai-prereq
 rhoai-prereq:
@@ -85,7 +87,13 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	@oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
 	@oc rollout status deployment/rhods-dashboard -n redhat-ods-applications
 	
-	oc apply -f ${BASE}/yaml/rhoai/template-rhaiis.yaml	
+	@echo "Patch to increase memory for data-science-gateway istio-proxy"
+	@oc apply -f ${BASE}/yaml/rhoai/data-science-gateway-config.yaml
+
+	@RHAIIS_IMAGE=$(RHAIIS_IMAGE) \
+		RHAIIS_VLLM_VERSION=$(RHAIIS_VLLM_VERSION) \
+		envsubst < $(BASE)/yaml/rhoai/template-rhaiis.yaml.tmpl | oc apply -n redhat-ods-applications -f -
+
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
 	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml
@@ -107,6 +115,10 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	
 .PHONY: setup-maas
 setup-maas:
+	@echo "Setting modelsAsService to Managed in DSC"
+	@oc patch datasciencecluster default-dsc --type='merge' \
+	-p '{"spec":{"components":{"kserve":{"modelsAsService":{"managementState":"Managed"}}}}}'
+
 	@set -eu; \
 	TMPDIR=$$(mktemp -d); \
 	echo "TMPDIR=$$TMPDIR"; \
@@ -133,6 +145,11 @@ setup-maas:
 	echo "Running setup-maas.sh..."; \
 	cd "$$TMPDIR/rhoai-maas-guide"; \
 	./scripts/setup-maas.sh 
+
+	@oc patch llminferenceservice gpt-oss-20b \
+	-n llm \
+	--type=merge \
+	-p '{"metadata":{"labels":{"opendatahub.io/genai-asset":"false"}}}'
 
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:

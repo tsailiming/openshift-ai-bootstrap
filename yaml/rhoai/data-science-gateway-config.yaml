@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-science-gateway-config
+  namespace: openshift-ingress
+data:
+  deployment: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: istio-proxy
+            resources:
+              limits:
+                cpu: '2'
+                memory: 2Gi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+
+  service: |
+    metadata:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: "data-science-gateway-service-tls"
+    spec:
+      type: ClusterIP

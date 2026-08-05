@@ -15,7 +15,7 @@ objects:
     metadata:
       annotations:
         opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
-        opendatahub.io/runtime-version: v0.19.1
+        opendatahub.io/runtime-version: ${RHAIIS_VLLM_VERSION}
         openshift.io/display-name: RHAIIS NVIDIA GPU ServingRuntime for KServe
         opendatahub.io/apiProtocol: REST
       labels:
@@ -24,7 +24,7 @@ objects:
     spec:
       annotations:
         prometheus.io/path: /metrics
-        prometheus.io/port: '8080'        
+        prometheus.io/port: '8080'
       containers:
         - args:
             - '--port=8080'
@@ -36,8 +36,8 @@ objects:
             - vllm.entrypoints.openai.api_server
           env:
             - name: HF_HOME
-              value: /tmp/hf_home
-          image: 'registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.5.0-ea.2'
+              value: /tmp/hf_homew
+          image: '${RHAIIS_IMAGE}'
           name: kserve-container
           ports:
             - containerPort: 8080
