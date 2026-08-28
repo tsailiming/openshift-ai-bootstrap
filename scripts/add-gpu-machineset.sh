@@ -110,6 +110,11 @@ YQ_EXPR="
     .spec.template.metadata.labels.\"machine.openshift.io/cluster-api-machineset\" = \"${NEW_MS}\" |
     .spec.template.spec.providerSpec.value.instanceType = \"${NEW_TYPE}\"
 "
+# Add NVIDIA GPU taint only for GPU instances
+if [[ "$GPU_COUNT" -gt 0 ]]; then
+  echo "Adding NVIDIA GPU taint"
+  YQ_EXPR="${YQ_EXPR} | .spec.template.spec.taints = [{\"key\":\"nvidia.com/gpu\",\"value\":\"true\",\"effect\":\"NoSchedule\"}]"
+fi
 
 # If NOT on-demand, add spotMarketOptions
 if [[ "$USE_ON_DEMAND" == "false" ]]; then
@@ -132,4 +137,6 @@ else
   echo
   echo "Applying new MachineSet: $NEW_MS with 0 replica"
   echo "$NEW_MS_YAML" | oc apply -f -
+
+
 fi
