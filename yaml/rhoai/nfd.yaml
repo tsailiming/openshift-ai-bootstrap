@@ -4,8 +4,6 @@ metadata:
   labels:
     kubernetes.io/metadata.name: openshift-nfd
   name: openshift-nfd
-spec: {}
-status: {}
 ---
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
