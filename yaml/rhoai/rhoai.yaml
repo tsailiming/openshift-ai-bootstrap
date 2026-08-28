@@ -17,7 +17,7 @@ metadata:
   name: rhods-operator
   namespace: redhat-ods-operator
 spec:
-  channel: beta
+  channel: stable-3.x
   installPlanApproval: Manual
   name: rhods-operator
   source: redhat-operators

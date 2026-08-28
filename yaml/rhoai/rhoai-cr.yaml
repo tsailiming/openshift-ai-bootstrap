@@ -35,6 +35,8 @@ spec:
       managementState: Managed
     ray:
       managementState: Managed
+    mcplifecycleoperator:
+      managementState: Managed
     kueue:
       defaultClusterQueueName: default
       defaultLocalQueueName: default

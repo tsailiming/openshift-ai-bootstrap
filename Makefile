@@ -38,9 +38,13 @@ rhoai-prereq:
 	@echo "Installing Red Hat Connectivity Link"
 	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
+
+	@echo "Installing Red Hat build of Agent Sandbox"
+	oc apply -f $(BASE)/yaml/rhoai/agent-sandbox.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh agent-sandbox-operator agent-sandbox-system
 	
 .PHONY: setup-rhoai
-setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
+setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-openshell
 	
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh rhods-operator redhat-ods-operator
@@ -112,7 +116,28 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 
 	oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
 	  console.openshift.io/dashboard=true --overwrite	
-	
+
+.PHONY: setup-openshell
+setup-openshell:
+	@set -eu; \
+	\
+	if helm status openshell -n openshell >/dev/null 2>&1; then \
+		echo "OpenShell is already installed in namespace openshell."; \
+		echo "Nothing to do."; \
+		exit 0; \
+	fi; \
+	\
+	TMPDIR=$$(mktemp -d); \
+	echo "TMPDIR=$$TMPDIR"; \
+	trap 'rm -rf "$$TMPDIR"' EXIT; \
+	\
+	echo "Cloning agent-ops repository..."; \
+	git clone https://github.com/opendatahub-io/agent-ops.git "$$TMPDIR/agent-ops"; \
+	\
+	echo "Running deploy-openshell.sh..."; \
+	cd "$$TMPDIR/agent-ops"; \
+	./scripts/deploy-openshell.sh
+
 .PHONY: setup-maas
 setup-maas:
 	@echo "Setting modelsAsService to Managed in DSC"

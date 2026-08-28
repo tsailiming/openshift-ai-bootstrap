@@ -24,7 +24,9 @@ spec:
     genAiStudio: true
     autorag: true
     automl: true
-    maasAuthPolicies: true
+    mcpCatalog: true
+    agentsCatalog: true
+    agentOps: true
     modelAsService: true
     observabilityDashboard: true
     disablePerformanceMetrics: false
