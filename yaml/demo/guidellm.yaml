@@ -30,7 +30,7 @@ spec:
               readOnly: true
               mountPath: /mnt/models
           terminationMessagePolicy: File
-          image: quay.io/ltsai/guidellm:0.3.0
+          image: quay.io/ltsai/guidellm:latest
           args:
             - '-f'
             - /dev/null
