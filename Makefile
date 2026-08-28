@@ -43,6 +43,13 @@ rhoai-prereq:
 	oc apply -f $(BASE)/yaml/rhoai/agent-sandbox.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh agent-sandbox-operator agent-sandbox-system
 	
+	@echo "Installing Red Hat OpenShift Pipelines"
+	oc apply -f $(BASE)/yaml/rhoai/pipeline.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh openshift-pipelines-operator-rh openshift-pipelines
+
+	@echo "Enable pipeline console plugin"
+	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"pipelines-console-plugin"}]'
+	
 .PHONY: setup-rhoai
 setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-openshell
 	
