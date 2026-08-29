@@ -3,6 +3,7 @@ SHELL=/bin/sh
 NAMESPACE=demo
 RHAIIS_IMAGE=registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.5.0-ea.2
 RHAIIS_VLLM_VERSION=0.19.1
+AWS_METAL_INSTANCE=c5n.metal
 
 .PHONY: rhoai-prereq
 rhoai-prereq:
@@ -38,6 +39,9 @@ rhoai-prereq:
 	@echo "Installing Red Hat Connectivity Link"
 	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
+	
+	@echo "Enable connectivity link console plugin"
+	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"kuadrant-console-plugin"}]'
 
 	@echo "Installing Red Hat build of Agent Sandbox"
 	oc apply -f $(BASE)/yaml/rhoai/agent-sandbox.yaml
@@ -49,9 +53,9 @@ rhoai-prereq:
 
 	@echo "Enable pipeline console plugin"
 	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"pipelines-console-plugin"}]'
-	
+
 .PHONY: setup-rhoai
-setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-openshell
+setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-osc setup-openshell
 	
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh rhods-operator redhat-ods-operator
@@ -124,8 +128,28 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-openshell
 	oc label configmap nvidia-dcgm-exporter-dashboard -n openshift-config-managed \
 	  console.openshift.io/dashboard=true --overwrite	
 
+.PHONY: setup-osc
+setup-osc:
+	@echo "OpenShift sandboxed containers Operator"
+	oc apply -f $(BASE)/yaml/rhoai/osc.yaml
+	@$(BASE)/scripts/check-operator-install-status.sh sandboxed-containers-operator openshift-sandboxed-containers-operator
+	
+	@oc apply -f $(BASE)/yaml/rhoai/kata-config.yaml
+
+	@machineset=$$(oc get machinesets -n openshift-machine-api \
+		-o jsonpath='{range .items[?(@.spec.template.spec.providerSpec.value.placement.availabilityZone=="ap-northeast-1a")]}{.metadata.name}{"\n"}{end}' | head -1); \
+	if [ -z "$$machineset" ]; then \
+		echo "ERROR: No MachineSet found in ap-northeast-1a"; \
+		exit 1; \
+	fi; \
+	echo "Found MachineSet: $$machineset"; \
+	$(BASE)/scripts/add-gpu-machineset.sh "$$machineset" $(AWS_METAL_INSTANCE) --on-demand; \
+	oc patch machineset "$$machineset" -n openshift-machine-api --type=merge \
+		-p '{"spec":{"template":{"metadata":{"labels":{"feature.node.kubernetes.io/runtime.kata":"true"}}}}}'
+
 .PHONY: setup-openshell
 setup-openshell:
+
 	@set -eu; \
 	\
 	if helm status openshell -n openshell >/dev/null 2>&1; then \
@@ -144,6 +168,15 @@ setup-openshell:
 	echo "Running deploy-openshell.sh..."; \
 	cd "$$TMPDIR/agent-ops"; \
 	./scripts/deploy-openshell.sh
+
+	@echo "Setting openshell default runtimeclass to kata"
+	@helm upgrade openshell oci://ghcr.io/nvidia/openshell/helm-chart \
+	--version 0.0.85 \
+	--namespace openshell \
+	--reuse-values \
+	--set supervisor.topology=sidecar \
+	--set supervisor.sidecar.processBinaryAwareNetworkPolicy=true \
+	--set server.defaultRuntimeClassName=kata
 
 .PHONY: setup-maas
 setup-maas:

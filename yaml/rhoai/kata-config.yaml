@@ -1,0 +1,8 @@
+apiVersion: kataconfiguration.openshift.io/v1
+kind: KataConfig
+metadata:
+  name: metal-kataconfig
+spec:
+  enablePeerPods: false
+  checkNodeEligibility: true
+  logLevel: info
