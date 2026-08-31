@@ -2,6 +2,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: redhat-ods-operator
+  annotations:
+    openshift.io/display-name: "Red Hat OpenShift AI"
+  labels:
+    openshift.io/cluster-monitoring: "true"
 ---
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
@@ -21,4 +25,4 @@ spec:
   installPlanApproval: Manual
   name: rhods-operator
   source: redhat-operators
-  sourceNamespace: openshift-marketplace  
+  sourceNamespace: openshift-marketplace

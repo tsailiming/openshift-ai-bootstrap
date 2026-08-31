@@ -23,6 +23,10 @@ spec:
       registriesNamespace: rhoai-model-registries
     feastoperator:
       managementState: Managed
+    aigateway:
+      managementState: Managed
+      modelsAsAService:
+        managementState: Removed
     trustyai:
       eval:
         lmeval:
@@ -47,10 +51,10 @@ spec:
     mlflowoperator:
       managementState: Managed
     dashboard:
+      managementState: Managed    
+    ogx:
       managementState: Managed
     trainer:
-      managementState: Managed
-    ogx:
       managementState: Managed
     trainingoperator:
       managementState: Managed

@@ -35,11 +35,10 @@ rhoai-prereq:
 	@echo "Installing otel operator"
 	oc apply -f ${BASE}/yaml/rhoai/otel.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh opentelemetry-product openshift-opentelemetry-operator
-
+	
 	@echo "Installing Red Hat Connectivity Link"
 	oc apply -f $(BASE)/yaml/rhoai/kuadrant.yaml
-	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators	
-	
+	@$(BASE)/scripts/check-operator-install-status.sh rhcl-operator openshift-operators		
 	@echo "Enable connectivity link console plugin"
 	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"kuadrant-console-plugin"}]'
 
@@ -55,7 +54,7 @@ rhoai-prereq:
 	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"pipelines-console-plugin"}]'
 
 .PHONY: setup-rhoai
-setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-osc setup-openshell
+setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	
 	oc apply -f ${BASE}/yaml/rhoai/rhoai.yaml
 	@$(BASE)/scripts/check-operator-install-status.sh rhods-operator redhat-ods-operator
@@ -65,7 +64,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq setup-osc setup-o
 	done
 	
 	@oc patch dsci default-dsci --type=merge \
-	-p '{"spec":{"monitoring":{"managementState":"Managed","namespace":"redhat-ods-monitoring","alerting":{},"metrics":{"replicas":1,"resources":{"cpulimit":"500m","cpurequest":"100m","memorylimit":"512Mi","memoryrequest":"256Mi"},"storage":{"size":"5Gi","retention":"90d"},"exporters":{}},"traces":{"sampleRatio":"0.1","storage":{"backend":"pv","retention":"2160h"},"exporters":{}}}}}'
+  	-p '{"spec":{"monitoring":{"managementState":"Managed","namespace":"redhat-ods-monitoring","alerting":{},"metrics":{"replicas":1,"storage":{"size":"5Gi","retention":"90d"},"exporters":{}},"traces":{"sampleRatio":"0.1","storage":{"backend":"pv","retention":"2160h"},"exporters":{}}}}}'
 
 	@CSV=$$(oc get subscription rhods-operator -n redhat-ods-operator -o jsonpath='{.status.installedCSV}' 2>/dev/null); \
 	if [ -z "$$CSV" ]; then \
@@ -148,7 +147,7 @@ setup-osc:
 		-p '{"spec":{"template":{"metadata":{"labels":{"feature.node.kubernetes.io/runtime.kata":"true"}}}}}'
 
 .PHONY: setup-openshell
-setup-openshell:
+setup-openshell: setup-osc
 
 	@set -eu; \
 	\
@@ -179,11 +178,7 @@ setup-openshell:
 	--set server.defaultRuntimeClassName=kata
 
 .PHONY: setup-maas
-setup-maas:
-	@echo "Setting modelsAsService to Managed in DSC"
-	@oc patch datasciencecluster default-dsc --type='merge' \
-	-p '{"spec":{"components":{"kserve":{"modelsAsService":{"managementState":"Managed"}}}}}'
-
+setup-maas:		
 	@set -eu; \
 	TMPDIR=$$(mktemp -d); \
 	echo "TMPDIR=$$TMPDIR"; \
@@ -197,6 +192,8 @@ setup-maas:
 	else \
 		echo "No OAuth token found. Creating cluster-admin ServiceAccount token..."; \
 		TOKEN=$$($(BASE)/scripts/get-token.sh); \
+		echo "Token length: $${#TOKEN}"; \
+		test -n "$$TOKEN"; \
 		export KUBECONFIG="$$TMP_KUBECONFIG"; \
 		oc login \
 			--token="$$TOKEN" \
@@ -204,6 +201,9 @@ setup-maas:
 			--insecure-skip-tls-verify=true; \
 	fi; \
 	\
+	echo "Setting modelsAsService to Managed in DSC"; \
+	oc patch datasciencecluster default-dsc --type='merge' \
+	-p '{"spec":{"components":{"aigateway":{"modelsAsAService":{"managementState":"Managed"}}}}}'; \
 	echo "Cloning repository..."; \
 	git clone https://github.com/rh-aiservices-bu/rhoai-maas-guide.git "$$TMPDIR/rhoai-maas-guide"; \
 	\
@@ -211,10 +211,19 @@ setup-maas:
 	cd "$$TMPDIR/rhoai-maas-guide"; \
 	./scripts/setup-maas.sh 
 
-	@oc patch llminferenceservice gpt-oss-20b \
-	-n llm \
-	--type=merge \
-	-p '{"metadata":{"labels":{"opendatahub.io/genai-asset":"false"}}}'
+# 	@oc patch llminferenceservice gpt-oss-20b \
+# 	-n llm \
+# 	--type=merge \
+# 	-p '{"metadata":{"labels":{"opendatahub.io/genai-asset":"false"}}}'
+
+# 	@echo "RHODS operator install plan approval set to Manual"
+# 	@oc patch subscription rhods-operator \
+# 		-n redhat-ods-operator \
+# 		--type=merge \
+# 		-p '{"spec":{"installPlanApproval":"Manual"}}'
+	
+# 	@echo "Enable connectivity link console plugin"
+# 	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"kuadrant-console-plugin"}]'
 
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
