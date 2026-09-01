@@ -178,7 +178,7 @@ setup-openshell: setup-osc
 	--set server.defaultRuntimeClassName=kata
 
 .PHONY: setup-maas
-setup-maas:		
+setup-maas:
 	@set -eu; \
 	TMPDIR=$$(mktemp -d); \
 	echo "TMPDIR=$$TMPDIR"; \
@@ -203,7 +203,7 @@ setup-maas:
 	\
 	echo "Setting modelsAsService to Managed in DSC"; \
 	oc patch datasciencecluster default-dsc --type='merge' \
-	-p '{"spec":{"components":{"aigateway":{"modelsAsAService":{"managementState":"Managed"}}}}}'; \
+		-p '{"spec":{"components":{"aigateway":{"modelsAsAService":{"managementState":"Managed"}}}}}'; \
 	echo "Cloning repository..."; \
 	git clone https://github.com/rh-aiservices-bu/rhoai-maas-guide.git "$$TMPDIR/rhoai-maas-guide"; \
 	\
@@ -211,20 +211,21 @@ setup-maas:
 	cd "$$TMPDIR/rhoai-maas-guide"; \
 	./scripts/setup-maas.sh 
 
-# 	@oc patch llminferenceservice gpt-oss-20b \
-# 	-n llm \
-# 	--type=merge \
-# 	-p '{"metadata":{"labels":{"opendatahub.io/genai-asset":"false"}}}'
+	@oc patch maastenantconfig default-tenant \
+		-n models-as-a-service \
+		--type=merge \
+		-p '{"spec":{"telemetry":{"enabled":true,"metrics":{"captureGroup":true,"captureModelUsage":true,"captureOrganization":true,"captureUser":true}}}}'
 
-# 	@echo "RHODS operator install plan approval set to Manual"
-# 	@oc patch subscription rhods-operator \
-# 		-n redhat-ods-operator \
-# 		--type=merge \
-# 		-p '{"spec":{"installPlanApproval":"Manual"}}'
-	
-# 	@echo "Enable connectivity link console plugin"
-# 	@oc patch console.operator.openshift.io cluster --type=json -p='[{"op":"add","path":"/spec/plugins/-","value":"kuadrant-console-plugin"}]'
+	@oc patch maassubscription gpt-oss-20b-free \
+		-n models-as-a-service \
+		--type=merge \
+		-p '{"spec":{"tokenMetadata":{"costCenter":"101","organizationId":"APAC AI"}}}'
 
+	@oc patch maassubscription gpt-oss-20b-premium \
+		-n models-as-a-service \
+		--type=merge \
+		-p '{"spec":{"tokenMetadata":{"costCenter":"101","organizationId":"APAC AI"}}}'
+		
 .PHONY: add-nfs-provisioner
 add-nfs-provisioner:
 	@$(BASE)/scripts/install-nfs-provisioner.sh
