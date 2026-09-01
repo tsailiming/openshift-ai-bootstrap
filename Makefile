@@ -4,6 +4,7 @@ NAMESPACE=demo
 RHAIIS_IMAGE=registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.5.0-ea.2
 RHAIIS_VLLM_VERSION=0.19.1
 AWS_METAL_INSTANCE=c5n.metal
+AWS_AZ=ap-northeast-1a
 
 .PHONY: rhoai-prereq
 rhoai-prereq:
@@ -136,13 +137,13 @@ setup-osc:
 	@oc apply -f $(BASE)/yaml/rhoai/kata-config.yaml
 
 	@machineset=$$(oc get machinesets -n openshift-machine-api \
-		-o jsonpath='{range .items[?(@.spec.template.spec.providerSpec.value.placement.availabilityZone=="ap-northeast-1a")]}{.metadata.name}{"\n"}{end}' | head -1); \
+		-o jsonpath='{range .items[?(@.spec.template.spec.providerSpec.value.placement.availabilityZone=="$(AWS_AZ)")]}{.metadata.name}{"\n"}{end}' | head -1); \
 	if [ -z "$$machineset" ]; then \
-		echo "ERROR: No MachineSet found in ap-northeast-1a"; \
+		echo "ERROR: No MachineSet found in $(AWS_AZ)"; \
 		exit 1; \
 	fi; \
 	echo "Found MachineSet: $$machineset"; \
-	$(BASE)/scripts/add-gpu-machineset.sh "$$machineset" $(AWS_METAL_INSTANCE) --on-demand; \
+	$(BASE)/scripts/clone-machineset.sh "$$machineset" $(AWS_METAL_INSTANCE) --on-demand; \
 	oc patch machineset "$$machineset" -n openshift-machine-api --type=merge \
 		-p '{"spec":{"template":{"metadata":{"labels":{"feature.node.kubernetes.io/runtime.kata":"true"}}}}}'
 
