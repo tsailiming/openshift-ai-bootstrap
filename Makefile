@@ -147,6 +147,10 @@ setup-osc:
 	oc patch machineset "$$machineset" -n openshift-machine-api --type=merge \
 		-p '{"spec":{"template":{"metadata":{"labels":{"feature.node.kubernetes.io/runtime.kata":"true"}}}}}'
 
+.PHONY: setup-mcp-gateway
+setup-mcp-gateway:
+	@$(BASE)/scripts/setup-mcp-gateway.sh
+
 .PHONY: setup-openshell
 setup-openshell: setup-osc
 

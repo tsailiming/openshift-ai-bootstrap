@@ -1,0 +1,13 @@
+apiVersion: mcp.kuadrant.io/v1alpha1
+kind: MCPGatewayExtension
+metadata:
+  name: mcp-gateway-extension
+  namespace: mcp-gateway
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: mcp-default-gateway
+    namespace: openshift-ingress
+    sectionName: mcps
+  httpRouteManagement: Enabled
