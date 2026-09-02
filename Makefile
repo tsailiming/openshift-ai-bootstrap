@@ -264,6 +264,8 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
+	oc apply -f $(BASE)/yaml/demo/mcp-ocp.yaml
+	
 .PHONY: setup-ai-playground
 setup-ai-playground: 
 # 	@echo "Serving llama-32-3b-instruct"

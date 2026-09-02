@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openshift-mcp-server-config  
+  namespace: demo
+data:
+  config.toml: |
+    log_level = 5
+    port = "8080"
+    read_only = true
+    toolsets = ["core", "config"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-viewer
+  namespace: demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-viewer-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: mcp-viewer
+    namespace: demo
+---
+apiVersion: mcp.x-k8s.io/v1alpha1
+kind: MCPServer
+metadata:
+  annotations:
+    mcp.opendatahub.io/catalog-server: openshift-mcp-server
+    mcp.opendatahub.io/display-name: ocp-mcp-server
+  name: ocp-mcp-server
+  namespace: demo
+spec:
+  config:
+    arguments:
+    - --config
+    - /etc/mcp-config/config.toml
+    path: /mcp
+    port: 8080
+    storage:
+    - path: /etc/mcp-config
+      permissions: ReadOnly
+      source:
+        configMap:
+          name: openshift-mcp-server-config
+        type: ConfigMap
+  runtime:
+    security:
+      serviceAccountName: mcp-viewer
+  source:
+    containerImage:
+      ref: registry.redhat.io/openshift-mcp-tech-preview/openshift-mcp-server-rhel9:0.4
+    type: ContainerImage
