@@ -7,7 +7,7 @@ spec:
   from:
     - group: mcp.kuadrant.io
       kind: MCPGatewayExtension
-      namespace: mcp-gateway
+      namespace: mcp-system
   to:
     - group: gateway.networking.k8s.io
       kind: Gateway

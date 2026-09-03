@@ -9,7 +9,7 @@ oc apply -f "${BASE}/yaml/rhoai/mcp-gateway.yaml"
 
 "${BASE}/scripts/check-operator-install-status.sh" \
     mcp-gateway \
-    mcp-gateway
+    mcp-system
 
 
 # ----------------------------------------------------------------------
@@ -80,12 +80,12 @@ echo "Waiting for mcp-gateway Service..."
 if ! oc wait \
     --for=jsonpath='{.spec.ports[?(@.port==8080)].port}'=8080 \
     service/mcp-gateway \
-    -n mcp-gateway \
+    -n mcp-system \
     --timeout=120s \
     >/dev/null 2>&1
 then
     echo "ERROR: mcp-gateway Service is not ready." >&2
-    oc get service mcp-gateway -n mcp-gateway
+    oc get service mcp-gateway -n mcp-system
     exit 1
 fi
 
@@ -103,7 +103,7 @@ ENDPOINTS=""
 for _ in $(seq 1 60); do
     ENDPOINTS=$(
         oc get endpoints mcp-gateway \
-            -n mcp-gateway \
+            -n mcp-system \
             -o jsonpath='{.subsets[*].addresses[*].ip}' \
             2>/dev/null || true
     )
@@ -117,7 +117,7 @@ done
 
 if [ -z "$ENDPOINTS" ]; then
     echo "ERROR: mcp-gateway has no ready endpoints." >&2
-    oc get endpoints mcp-gateway -n mcp-gateway -o yaml
+    oc get endpoints mcp-gateway -n mcp-system -o yaml
     exit 1
 fi
 

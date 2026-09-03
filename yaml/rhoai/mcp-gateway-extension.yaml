@@ -2,7 +2,7 @@ apiVersion: mcp.kuadrant.io/v1alpha1
 kind: MCPGatewayExtension
 metadata:
   name: mcp-gateway-extension
-  namespace: mcp-gateway
+  namespace: mcp-system
 spec:
   targetRef:
     group: gateway.networking.k8s.io
