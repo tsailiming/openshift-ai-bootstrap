@@ -184,6 +184,9 @@ setup-openshell: setup-osc
 
 .PHONY: setup-maas
 setup-maas:
+	# Both setup-prereq and setup-rhoai targets are installing most of the prereq aleady.
+	# This is to avoid setup-maas.sh from overriding my original configurations.
+
 	@set -eu; \
 	TMPDIR=$$(mktemp -d); \
 	echo "TMPDIR=$$TMPDIR"; \
@@ -216,17 +219,18 @@ setup-maas:
 	cd "$$TMPDIR/rhoai-maas-guide"; \
 	./scripts/setup-maas.sh 
 
+	# This is required in 3.5 for usage observability
 	@oc patch maastenantconfig default-tenant \
 		-n models-as-a-service \
 		--type=merge \
 		-p '{"spec":{"telemetry":{"enabled":true,"metrics":{"captureGroup":true,"captureModelUsage":true,"captureOrganization":true,"captureUser":true}}}}'
 
-	@oc patch maassubscription gpt-oss-20b-free \
+	-oc patch maassubscription gpt-oss-20b-free \
 		-n models-as-a-service \
 		--type=merge \
 		-p '{"spec":{"tokenMetadata":{"costCenter":"101","organizationId":"APAC AI"}}}'
 
-	@oc patch maassubscription gpt-oss-20b-premium \
+	-oc patch maassubscription gpt-oss-20b-premium \
 		-n models-as-a-service \
 		--type=merge \
 		-p '{"spec":{"tokenMetadata":{"costCenter":"101","organizationId":"APAC AI"}}}'
