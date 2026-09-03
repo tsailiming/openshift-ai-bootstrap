@@ -1,0 +1,15 @@
+apiVersion: mcp.kuadrant.io/v1alpha1
+kind: MCPServerRegistration
+metadata:
+  name: ocp-mcp-server
+  namespace: demo
+spec:
+  prefix: ocp_
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: ocp-mcp-server-route
+    namespace: demo
+  # credentialRef:
+  #   name: <mcp_server_one_secret>
+  #   key: api-key

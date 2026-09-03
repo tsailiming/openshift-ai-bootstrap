@@ -5,6 +5,7 @@ RHAIIS_IMAGE=registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.5.0-ea.2
 RHAIIS_VLLM_VERSION=0.19.1
 AWS_METAL_INSTANCE=c5n.metal
 AWS_AZ=ap-northeast-1a
+CLUSTER_DOMAIN=$(shell oc get dns.config.openshift.io/cluster -o jsonpath='{.spec.baseDomain}')
 
 .PHONY: rhoai-prereq
 rhoai-prereq:
@@ -151,6 +152,11 @@ setup-osc:
 setup-mcp-gateway:
 	@$(BASE)/scripts/setup-mcp-gateway.sh
 
+	@CLUSTER_DOMAIN=CLUSTER_DOMAIN $(BASE)/scripts/deploy-mcp-server.sh demo ocp-mcp-server $(BASE)/yaml/demo/mcp-ocp.yaml	
+
+	@echo "Testing mcp server"
+	@$(BASE)/scripts/test-mcp-server.sh demo ocp-mcp-server
+	
 .PHONY: setup-openshell
 setup-openshell: setup-osc
 
@@ -268,8 +274,6 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
-	oc apply -f $(BASE)/yaml/demo/mcp-ocp.yaml
-	
 .PHONY: setup-ai-playground
 setup-ai-playground: 
 # 	@echo "Serving llama-32-3b-instruct"
