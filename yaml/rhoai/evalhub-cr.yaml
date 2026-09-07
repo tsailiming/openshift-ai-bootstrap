@@ -18,6 +18,7 @@ spec:
     - safety-and-fairness-v1
     - leaderboard-v2
     - toxicity-and-ethical-principles
+    - model-validation
   env:
     - name: MLFLOW_TRACKING_URI
       value: "https://mlflow.redhat-ods-applications.svc:8443/mlflow"
