@@ -4,15 +4,20 @@ metadata:
   name: evalhub
   namespace: redhat-ods-applications
 spec:
+  tenancy: multi
   replicas: 1
   database:
     type: sqlite
   providers:
     - lm-evaluation-harness
     - garak
+    - garak-kfp
     - guidellm
+    - ibm-clear
   collections:
     - safety-and-fairness-v1
+    - leaderboard-v2
+    - toxicity-and-ethical-principles
   env:
     - name: MLFLOW_TRACKING_URI
-      value: "https://mlflow.redhat-ods-applications.svc:8443"
+      value: "https://mlflow.redhat-ods-applications.svc:8443/mlflow"

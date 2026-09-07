@@ -274,6 +274,8 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	oc delete pods -l app.kubernetes.io/name=model-catalog -n rhoai-model-registries
 
+	oc apply -f $(BASE)/yaml/demo/evalhub-rb.yaml -n ${NAMESPACE}
+
 .PHONY: setup-ai-playground
 setup-ai-playground: 
 # 	@echo "Serving llama-32-3b-instruct"
@@ -316,7 +318,8 @@ setup-namespace:
 	@oc label namespace $(NAMESPACE) \
 		maistra.io/member-of=istio-system \
 		modelmesh-enabled=false \
-		opendatahub.io/dashboard=true
+		opendatahub.io/dashboard=true \
+		evalhub.trustyai.opendatahub.io/tenant=
 
 .PHONY: setup-odh-tec
 setup-odh-tec:

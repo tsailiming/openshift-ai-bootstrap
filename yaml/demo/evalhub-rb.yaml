@@ -1,0 +1,26 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: evalhub-evaluator
+  namespace: demo
+rules:
+  - apiGroups: [trustyai.opendatahub.io]
+    resources: [evaluations, collections, providers]
+    verbs: [get, list, create, update, delete]
+  - apiGroups: [mlflow.kubeflow.org]
+    resources: [experiments]
+    verbs: [create, get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: evalhub-evaluator-binding
+  namespace: demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: evalhub-evaluator
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: demo
