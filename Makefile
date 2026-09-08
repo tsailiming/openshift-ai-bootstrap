@@ -319,7 +319,8 @@ setup-namespace:
 		maistra.io/member-of=istio-system \
 		modelmesh-enabled=false \
 		opendatahub.io/dashboard=true \
-		evalhub.trustyai.opendatahub.io/tenant=
+		evalhub.trustyai.opendatahub.io/tenant= \
+		opendatahub.io/application-namespace=true
 
 .PHONY: setup-odh-tec
 setup-odh-tec:
@@ -426,3 +427,9 @@ setup-multi-user:
 
 	@oc adm policy add-role-to-user edit user1 -n user1
 	@oc adm policy add-role-to-user edit user2 -n user2
+
+.PHONY: restart
+restart:
+	@oc rollout restart deploy/evalhub -n redhat-ods-applications
+	@oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
+	
