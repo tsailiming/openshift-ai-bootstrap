@@ -6,6 +6,7 @@ RHAIIS_VLLM_VERSION=0.19.1
 AWS_METAL_INSTANCE=c5n.metal
 AWS_AZ=ap-northeast-1a
 CLUSTER_DOMAIN=$(shell oc get dns.config.openshift.io/cluster -o jsonpath='{.spec.baseDomain}')
+EVALHUB_NAMESPACE=evalhub
 
 .PHONY: rhoai-prereq
 rhoai-prereq:
@@ -112,7 +113,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
-	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml
+	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml -n $(EVALHUB_NAMESPACE)
 	
 	@echo "Installing grafana operator"
 	@oc apply -f ${BASE}/yaml/rhoai/grafana.yaml
@@ -319,9 +320,10 @@ setup-namespace:
 		maistra.io/member-of=istio-system \
 		modelmesh-enabled=false \
 		opendatahub.io/dashboard=true \
-		evalhub.trustyai.opendatahub.io/tenant= \
-		opendatahub.io/application-namespace=true
+		evalhub.trustyai.opendatahub.io/tenant=
 
+	-oc new-project $(EVALHUB_NAMESPACE)
+	
 .PHONY: setup-odh-tec
 setup-odh-tec:
 	@oc apply -f $(BASE)/yaml/infra/odh-tec.yaml -n $(NAMESPACE)
@@ -430,6 +432,6 @@ setup-multi-user:
 
 .PHONY: restart
 restart:
-	@oc rollout restart deploy/evalhub -n redhat-ods-applications
+	@oc rollout restart deploy/evalhub -n $(EVALHUB_NAMESPACE)
 	@oc rollout restart deployment/rhods-dashboard -n redhat-ods-applications
 	

@@ -2,7 +2,7 @@ apiVersion: trustyai.opendatahub.io/v1alpha1
 kind: EvalHub
 metadata:
   name: evalhub
-  namespace: redhat-ods-applications
+  namespace: evalhub
 spec:
   tenancy: multi
   replicas: 1
