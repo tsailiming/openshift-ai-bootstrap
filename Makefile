@@ -112,6 +112,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 		envsubst < $(BASE)/yaml/rhoai/template-rhaiis.yaml.tmpl | oc apply -n redhat-ods-applications -f -
 
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
+	oc apply -f ${BASE}/yaml/rhoai/mlflow-pgsql.yaml
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
 	
 	oc apply -f ${BASE}/yaml/rhoai/evalhub-pgsql.yaml -n $(EVALHUB_NAMESPACE)

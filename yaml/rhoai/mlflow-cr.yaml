@@ -9,7 +9,9 @@ spec:
     resources:
       requests:
         storage: 10Gi
-    storageClassName: managed-nfs-storage
-  backendStoreUri: "sqlite:////mlflow/mlflow.db"
+    storageClassName: managed-nfs-storage  
+  backendStoreUriFrom: 
+    name: mlflow-db-credentials 
+    key: backend-store-uri
   artifactsDestination: "file:///mlflow/artifacts"
   serveArtifacts: true
