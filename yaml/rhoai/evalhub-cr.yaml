@@ -7,7 +7,8 @@ spec:
   tenancy: multi
   replicas: 1
   database:
-    type: sqlite
+    type: postgresql
+    secret: evalhub-db-credentials  
   providers:
     - lm-evaluation-harness
     - garak

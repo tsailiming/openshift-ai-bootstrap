@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: evalhub-postgresql
+  namespace: evalhub
+type: Opaque
+stringData:
+  database-user: evalhub
+  database-password: evalhub
+  database-name: evalhub
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: evalhub-postgresql
+  namespace: evalhub
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: evalhub-postgresql
+  namespace: evalhub
+  labels:
+    app: evalhub-postgresql
+spec:
+  type: ClusterIP
+  selector:
+    app: evalhub-postgresql
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evalhub-postgresql
+  namespace: evalhub
+  labels:
+    app: evalhub-postgresql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: evalhub-postgresql
+  template:
+    metadata:
+      labels:
+        app: evalhub-postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: image-registry.openshift-image-registry.svc:5000/openshift/postgresql:15-el9
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: evalhub-postgresql
+                  key: database-user
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: evalhub-postgresql
+                  key: database-password
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: evalhub-postgresql
+                  key: database-name
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: "1"
+          readinessProbe:
+            exec:
+              command:
+                - /usr/libexec/check-container
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - /usr/libexec/check-container
+                - --live
+            initialDelaySeconds: 120
+            periodSeconds: 20
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: postgresql-data
+              mountPath: /var/lib/pgsql/data
+      volumes:
+        - name: postgresql-data
+          persistentVolumeClaim:
+            claimName: evalhub-postgresql
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: evalhub-db-credentials
+  namespace: evalhub
+type: Opaque
+stringData:
+  db-url: "postgres://evalhub:evalhub@evalhub-postgresql:5432/evalhub"

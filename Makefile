@@ -113,6 +113,8 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 
 	oc apply -f ${BASE}/yaml/rhoai/hardwareprofile.yaml
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
+	
+	oc apply -f ${BASE}/yaml/rhoai/evalhub-pgsql.yaml -n $(EVALHUB_NAMESPACE)
 	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml -n $(EVALHUB_NAMESPACE)
 	
 	@echo "Installing grafana operator"
@@ -323,6 +325,8 @@ setup-namespace:
 		evalhub.trustyai.opendatahub.io/tenant=
 
 	-oc new-project $(EVALHUB_NAMESPACE)
+	@oc label namespace $(EVALHUB_NAMESPACE) \
+		evalhub.trustyai.io/managed=true
 	
 .PHONY: setup-odh-tec
 setup-odh-tec:
