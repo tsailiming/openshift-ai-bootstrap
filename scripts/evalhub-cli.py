@@ -13,6 +13,7 @@ import time
 from datetime import datetime
 
 from evalhub import ModelConfig, SyncEvalHubClient
+from evalhub.models import ModelAuth
 from evalhub.models.api import BenchmarkConfig, JobSubmissionRequest
 
 
@@ -168,13 +169,10 @@ def create_model_secret(secret_name, api_key):
 
 
 def build_model(args):
-    auth = None
+    secret_name = None
 
     if args.model_secret:
-        auth = {
-            "type": "kubernetes_secret",
-            "name": args.model_secret,
-        }
+        secret_name = args.model_secret
 
     elif args.model_api_key:
         secret_name = args.model_secret_name or f"{args.model_name}-api-key"
@@ -184,10 +182,7 @@ def build_model(args):
             args.model_api_key,
         )
 
-        auth = {
-            "type": "kubernetes_secret",
-            "name": secret_name,
-        }
+    auth = ModelAuth(secret_ref=secret_name) if secret_name else None
 
     return ModelConfig(
         url=args.model_url,
