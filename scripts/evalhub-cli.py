@@ -12,9 +12,11 @@ import sys
 import time
 from datetime import datetime
 
-from evalhub import ModelConfig, SyncEvalHubClient
+from evalhub import JobLogOptions, ModelConfig, SyncEvalHubClient
+from evalhub.cli.formatter import output
+from evalhub.client.job_logs import is_terminal_job
 from evalhub.models import ModelAuth
-from evalhub.models.api import BenchmarkConfig, JobSubmissionRequest
+from evalhub.models.api import BenchmarkConfig, JobStatus, JobSubmissionRequest
 
 
 # ---------------------------------------------------------------------------
@@ -68,10 +70,21 @@ def format_datetime(value):
 
 
 def get_job_state(job):
+    effective_state = getattr(job, "effective_state", None)
+
+    if effective_state is not None:
+        if hasattr(effective_state, "value"):
+            return effective_state.value
+
+        return str(effective_state).lower()
+
     state = getattr(job, "state", None)
 
     if state is None:
         return "unknown"
+
+    if hasattr(state, "value"):
+        return state.value
 
     return str(state).lower()
 
@@ -92,39 +105,6 @@ def get_job_id(job):
             return value
 
     return None
-
-
-def is_terminal_state(state):
-    return state in {
-        "succeeded",
-        "success",
-        "completed",
-        "complete",
-        "failed",
-        "failure",
-        "error",
-        "cancelled",
-        "canceled",
-    }
-
-
-def is_success_state(state):
-    return state in {
-        "succeeded",
-        "success",
-        "completed",
-        "complete",
-    }
-
-
-def is_failure_state(state):
-    return state in {
-        "failed",
-        "failure",
-        "error",
-        "cancelled",
-        "canceled",
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -356,7 +336,7 @@ def show_job_status(client, job_id, wait=False, interval=5):
             print_job_status(job)
             last_state = state
 
-        if not wait or is_terminal_state(state):
+        if not wait or is_terminal_job(job):
             break
 
         time.sleep(interval)
@@ -471,6 +451,126 @@ def submit(client, args):
         )
 
 
+def cancel_job(client, job_id, hard_delete=False):
+    client.jobs.cancel(job_id, hard_delete=hard_delete)
+
+    action = "deleted" if hard_delete else "cancelled"
+    print(f"Job {job_id} {action}.")
+
+
+def show_job_logs(client, args):
+    options = JobLogOptions(
+        tail_lines=args.tail,
+        timestamps=args.timestamps,
+        since_seconds=args.since,
+    )
+
+    if args.follow:
+        print(f"Streaming logs for job {args.job_id}...", file=sys.stderr)
+
+        final_state = None
+
+        try:
+            for update in client.jobs.watch_logs(
+                args.job_id,
+                benchmark_index=args.benchmark_index,
+                options=options,
+                poll_interval=args.poll_interval,
+                timeout=args.timeout,
+            ):
+                if update.logs:
+                    print(update.logs, end="")
+
+                final_state = update.job.effective_state
+
+        except TimeoutError:
+            print(
+                f"\nTimed out before job {args.job_id} reached a terminal state.",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        print(file=sys.stderr)
+
+        if final_state not in {
+            JobStatus.COMPLETED,
+            JobStatus.FAILED,
+            JobStatus.CANCELLED,
+            JobStatus.PARTIALLY_FAILED,
+        }:
+            print(
+                f"Stream ended before completion (last state: {final_state}).",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+
+        print(
+            f"Job {args.job_id} finished with state: {final_state.value}",
+            file=sys.stderr,
+        )
+
+        if final_state == JobStatus.FAILED:
+            sys.exit(1)
+
+        return
+
+    logs = client.jobs.get_logs(
+        args.job_id,
+        benchmark_index=args.benchmark_index,
+        options=options,
+    )
+
+    if logs:
+        print(logs, end="")
+
+
+def show_job_results(client, job_id, output_format="table"):
+    job = client.jobs.get(job_id)
+
+    if job.effective_state != JobStatus.COMPLETED:
+        print(
+            f"Warning: job {job_id} is in state "
+            f"'{job.effective_state.value}', results may be incomplete.",
+            file=sys.stderr,
+        )
+
+    if not job.results or not job.results.benchmarks:
+        print("No results available.")
+        return
+
+    if output_format in ("json", "yaml"):
+        data = [b.model_dump(mode="json") for b in job.results.benchmarks]
+        output(data, output_format=output_format)
+        return
+
+    rows = []
+
+    for benchmark in job.results.benchmarks:
+        for metric_name, metric_value in benchmark.metrics.items():
+            rows.append(
+                {
+                    "benchmark": benchmark.id,
+                    "provider": benchmark.provider_id,
+                    "metric": metric_name,
+                    "value": metric_value,
+                }
+            )
+
+    if not rows:
+        print("No metric results available.")
+        return
+
+    output(
+        rows,
+        output_format=output_format,
+        columns=["benchmark", "provider", "metric", "value"],
+    )
+
+    if job.results.mlflow_experiment_url:
+        print()
+        print(f"MLflow experiment: {job.results.mlflow_experiment_url}")
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -523,12 +623,30 @@ def build_parser():
     )
 
     # ------------------------------------------------------------------
-    # status
+    # eval
     # ------------------------------------------------------------------
 
-    status_parser = subparsers.add_parser(
+    eval_parser = subparsers.add_parser(
+        "eval",
+        help="Submit and manage evaluation jobs",
+        description=(
+            "Submit and manage evaluation jobs.\n\n"
+            "Use 'eval submit' to submit a new evaluation, 'eval status' to track "
+            "progress, 'eval results' to fetch outcomes, and 'eval cancel' to "
+            "abort a running job."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    eval_subparsers = eval_parser.add_subparsers(
+        dest="eval_command",
+        required=True,
+    )
+
+    # eval status
+    status_parser = eval_subparsers.add_parser(
         "status",
-        help="Show evaluation job status",
+        help="Show job status or list all jobs",
     )
 
     status_parser.add_argument(
@@ -557,11 +675,8 @@ def build_parser():
         help="Polling interval in seconds (default: 5)",
     )
 
-    # ------------------------------------------------------------------
-    # submit
-    # ------------------------------------------------------------------
-
-    submit_parser = subparsers.add_parser(
+    # eval submit
+    submit_parser = eval_subparsers.add_parser(
         "submit",
         help="Submit an evaluation job",
     )
@@ -636,6 +751,101 @@ def build_parser():
         help="Polling interval in seconds (default: 5)",
     )
 
+    # eval cancel
+    cancel_parser = eval_subparsers.add_parser(
+        "cancel",
+        help="Cancel a running or queued evaluation job",
+    )
+
+    cancel_parser.add_argument(
+        "job_id",
+        help="Evaluation job ID",
+    )
+
+    cancel_parser.add_argument(
+        "--hard-delete",
+        action="store_true",
+        help="Permanently delete the job instead of cancelling",
+    )
+
+    # eval logs
+    logs_parser = eval_subparsers.add_parser(
+        "logs",
+        help="View logs for an evaluation job",
+    )
+
+    logs_parser.add_argument(
+        "job_id",
+        help="Evaluation job ID",
+    )
+
+    logs_parser.add_argument(
+        "--follow",
+        "-f",
+        action="store_true",
+        help="Stream logs until the job completes",
+    )
+
+    logs_parser.add_argument(
+        "--tail",
+        type=int,
+        default=1000,
+        help="Number of lines to show (default: 1000)",
+    )
+
+    logs_parser.add_argument(
+        "--timestamps",
+        action="store_true",
+        help="Include timestamps in log output",
+    )
+
+    logs_parser.add_argument(
+        "--since",
+        type=int,
+        default=None,
+        help="Show logs from the last N seconds",
+    )
+
+    logs_parser.add_argument(
+        "--benchmark-index",
+        type=int,
+        default=None,
+        help="Show logs for a specific benchmark by index",
+    )
+
+    logs_parser.add_argument(
+        "--poll-interval",
+        type=float,
+        default=2.0,
+        help="Seconds between polls when using --follow (default: 2.0)",
+    )
+
+    logs_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=None,
+        help="Stop streaming after N seconds (only with --follow)",
+    )
+
+    # eval results
+    results_parser = eval_subparsers.add_parser(
+        "results",
+        help="Retrieve and display evaluation results",
+    )
+
+    results_parser.add_argument(
+        "job_id",
+        help="Evaluation job ID",
+    )
+
+    results_parser.add_argument(
+        "--format",
+        dest="output_format",
+        choices=["table", "json", "yaml", "csv"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
     return parser
 
 
@@ -664,40 +874,63 @@ def main():
             elif args.command == "collections":
                 show_collections(client)
 
-            elif args.command == "status":
-                if args.all_jobs and args.job_id:
-                    parser.error(
-                        "status: specify either JOB_ID or --all, not both"
-                    )
-
-                if not args.all_jobs and not args.job_id:
-                    parser.error(
-                        "status: specify JOB_ID or --all"
-                    )
-
-                if args.all_jobs:
-                    if args.wait:
+            elif args.command == "eval":
+                if args.eval_command == "status":
+                    if args.all_jobs and args.job_id:
                         parser.error(
-                            "status --all does not support --wait"
+                            "eval status: specify either JOB_ID or --all, not both"
                         )
 
-                    show_all_job_status(client)
+                    if not args.all_jobs and not args.job_id:
+                        parser.error(
+                            "eval status: specify JOB_ID or --all"
+                        )
 
-                else:
-                    show_job_status(
+                    if args.all_jobs:
+                        if args.wait:
+                            parser.error(
+                                "eval status --all does not support --wait"
+                            )
+
+                        show_all_job_status(client)
+
+                    else:
+                        show_job_status(
+                            client,
+                            args.job_id,
+                            wait=args.wait,
+                            interval=args.interval,
+                        )
+
+                elif args.eval_command == "submit":
+                    if args.benchmark and not args.provider:
+                        parser.error(
+                            "eval submit --benchmark requires --provider"
+                        )
+
+                    submit(client, args)
+
+                elif args.eval_command == "cancel":
+                    cancel_job(
                         client,
                         args.job_id,
-                        wait=args.wait,
-                        interval=args.interval,
+                        hard_delete=args.hard_delete,
                     )
 
-            elif args.command == "submit":
-                if args.benchmark and not args.provider:
-                    parser.error(
-                        "submit --benchmark requires --provider"
-                    )
+                elif args.eval_command == "logs":
+                    if args.timeout is not None and not args.follow:
+                        parser.error(
+                            "eval logs: --timeout requires --follow"
+                        )
 
-                submit(client, args)
+                    show_job_logs(client, args)
+
+                elif args.eval_command == "results":
+                    show_job_results(
+                        client,
+                        args.job_id,
+                        output_format=args.output_format,
+                    )
 
     except KeyError as exc:
         print(
