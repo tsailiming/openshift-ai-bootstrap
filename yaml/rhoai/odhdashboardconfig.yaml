@@ -30,8 +30,9 @@ spec:
     modelAsService: true
     observabilityDashboard: true
     disablePerformanceMetrics: false
-    disableKueue: false   
-    vLLMDeploymentOnMaaS: true    
+    disableKueue: false
+    gpuaas: true
+    vLLMDeploymentOnMaaS: true
   hardwareProfileOrder: []
   notebookController:
     enabled: true
