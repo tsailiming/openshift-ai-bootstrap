@@ -371,6 +371,13 @@ The script requires:
 | `scripts/test-guardrail.sh`    | Tests the NeMo Guardrails checks API                                 |
 | `scripts/test-maas.sh`         | Tests MaaS `/v1/models` and `/v1/chat/completions`                   |
 
+### Related repositories
+
+1. ai-gateway-payload-processing [source code](https://github.com/opendatahub-io/ai-gateway-payload-processing/tree/main/examples)
+2. Same configuration: [nemo-maas](https://github.com/eformat/nemo-maas/tree/main), [IPP NeMo example](https://github.com/opendatahub-io/ai-gateway-payload-processing/tree/main/examples/nemo)
+3. [Sample guardrail config (banking)](https://github.com/trustyai-explainability/trustyai-llm-demo/tree/main/nemo-guardrails-config-collection/banking)
+4. [Models as a Service source (models-as-a-service)](https://github.com/opendatahub-io/models-as-a-service)
+
 ---
 
 ## Troubleshooting
