@@ -280,6 +280,25 @@ setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
 
 	oc apply -f $(BASE)/yaml/demo/evalhub-rb.yaml -n ${NAMESPACE}
 
+.PHONY: setup-guardrail
+setup-guardrail:
+
+	# If you are adding guardrail to maas IPP and have llm self check, 
+	# do not use maas api endpoint because it will cause recursive loop: 
+	# maas -> ipp -> guardrail -> maas. Instead use the workload svc endpoint
+	@test -n "$(OPENAI_BASE_URL)" || { echo "ERROR: OPENAI_BASE_URL is not set"; exit 1; }
+	@test -n "$(OPENAI_MODEL_NAME)" || { echo "ERROR: OPENAI_MODEL_NAME is not set"; exit 1; }
+	@test -n "$(OPENAI_API_KEY)" || { echo "ERROR: OPENAI_API_KEY is not set"; exit 1; }	
+	@oc -n "$(NAMESPACE)" create secret generic my-api-secret \
+		--from-literal=api-key="$(OPENAI_API_KEY)" \
+		--dry-run=client -o yaml | oc apply -f -
+
+	@envsubst '$$OPENAI_BASE_URL $$OPENAI_MODEL_NAME' \
+		< "$(BASE)/yaml/demo/nemo-cm.yaml.tmpl" \
+		| oc apply -f -
+
+	@oc apply -f "$(BASE)/yaml/demo/nemo-cr.yaml"
+
 .PHONY: setup-ai-playground
 setup-ai-playground: 
 # 	@echo "Serving llama-32-3b-instruct"
