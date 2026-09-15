@@ -289,13 +289,16 @@ setup-guardrail:
 	@test -n "$(OPENAI_BASE_URL)" || { echo "ERROR: OPENAI_BASE_URL is not set"; exit 1; }
 	@test -n "$(OPENAI_MODEL_NAME)" || { echo "ERROR: OPENAI_MODEL_NAME is not set"; exit 1; }
 	@test -n "$(OPENAI_API_KEY)" || { echo "ERROR: OPENAI_API_KEY is not set"; exit 1; }	
+
+	@test -n "$(GUARDRAIL_LLM_BASE_URL)" || { echo "ERROR: GUARDRAIL_LLM_BASE_URL is not set"; exit 1; }
+	@test -n "$(GUARDRAIL_LLM_MODEL_NAME)" || { echo "ERROR: GUARDRAIL_LLM_MODEL_NAME is not set"; exit 1; }
 	@oc -n "$(NAMESPACE)" create secret generic my-api-secret \
 		--from-literal=api-key="$(OPENAI_API_KEY)" \
 		--dry-run=client -o yaml | oc apply -f -
-
-	@envsubst '$$OPENAI_BASE_URL $$OPENAI_MODEL_NAME' \
-		< "$(BASE)/yaml/demo/nemo-cm.yaml.tmpl" \
-		| oc apply -f -
+	
+	@envsubst '$$OPENAI_BASE_URL $$OPENAI_MODEL_NAME $$GUARDRAIL_LLM_BASE_URL $$GUARDRAIL_LLM_MODEL_NAME' \
+	< "$(BASE)/yaml/demo/nemo-cm.yaml.tmpl" \
+	| oc apply -f -
 
 	@oc apply -f "$(BASE)/yaml/demo/nemo-cr.yaml"
 
