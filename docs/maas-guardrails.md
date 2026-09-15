@@ -9,6 +9,42 @@ The example uses:
 * An OpenAI-compatible model endpoint used by NeMo Guardrails for its LLM-based rails.
 * An OpenShift Route to expose the NeMo Guardrails checks API to MaaS IPP.
 
+## IMPORTANT: `payload-processing` image version (TrustyAI `/v1/guardrail/checks`)
+
+> Read this before enabling guardrails or debugging MaaS 500 errors.
+>
+> This bootstrap wires MaaS IPP to **TrustyAI NeMo Guardrails**, which calls:
+>
+> `POST /v1/guardrail/checks`
+>
+> and returns a JSON body whose top-level `status` is **`success`**, **`blocked`**, or **`error`** (not NVIDIA upstream `/v1/checks`, which used **`passed`**).
+>
+> Older `payload-processing` images (built from [ai-gateway-payload-processing](https://github.com/opendatahub-io/ai-gateway-payload-processing) **before** [PR #434](https://github.com/opendatahub-io/ai-gateway-payload-processing/pull/434)) only treat **`passed`** as “allow”. When NeMo correctly returns **`success`**, IPP fails closed with:
+>
+> ```text
+> unknown NeMo guardrails status "success"
+> ```
+>
+> and MaaS returns **500 Internal Server Error** even though NeMo allowed the request.
+>
+> **What works vs what breaks on those images**
+>
+> | NeMo result | Old IPP (pre-#434) | IPP with #434+ |
+> | ----------- | ------------------ | -------------- |
+> | Input blocked (`status: blocked`) | 403 (looks fine) | 403 |
+> | Input allowed (`status: success`) | **500** (false failure) | Request continues to the model |
+> | NeMo processing error (`status: error`) | Often **500** | **503** (fail-closed) |
+>
+> **What you should do**
+>
+> 1. Upgrade the **`payload-processing`** deployment in `openshift-ingress` to an image that includes merge commit **`d32e434`** or later (merged 2026-08-21 in opendatahub-io `main`).
+> 2. Confirm on the cluster: `oc get deploy payload-processing -n openshift-ingress -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'` and match it to your RHOAI/MaaS release notes or a build **after** #434.
+> 3. Direct NeMo tests (`scripts/test-guardrail.sh`, `curl` to `/v1/guardrail/checks`) can **pass** while MaaS still **500** until IPP is upgraded — that is expected with this mismatch.
+>
+> Enabling plugins via `scripts/enable-ipp-nemo.py` only changes IPP **configuration**; it does **not** replace the container image. NeMo and bootstrap config can be correct while IPP is still too old.
+>
+> Reference fix: [fix(guardrails): align NeMo status constants with /v1/guardrail/checks endpoint (#434)](https://github.com/opendatahub-io/ai-gateway-payload-processing/pull/434).
+
 ## How it works
 
 There are two separate URLs involved, and they serve different purposes.
@@ -88,6 +124,7 @@ This bootstrap example does not provide per-model or per-route guardrail policie
 * `oc` CLI logged in to the OpenShift cluster.
 * Permission to modify resources in the `demo` and `openshift-ingress` namespaces.
 * MaaS and the `payload-processing` deployment running in `openshift-ingress`.
+* A `payload-processing` image that includes [ai-gateway-payload-processing PR #434](https://github.com/opendatahub-io/ai-gateway-payload-processing/pull/434) (`success` / `error` status handling for `/v1/guardrail/checks`). See the disclaimer above if allowed requests return 500.
 * OpenShift AI 3.5+ with the default MaaS gateway.
 * [`uv`](https://docs.astral.sh/uv/) for running `scripts/enable-ipp-nemo.py`.
 
@@ -390,3 +427,6 @@ The script requires:
 | `oc patch` or rollout fails                        | Verify your `oc` context and permissions and confirm `payload-processing-plugins` exists in `openshift-ingress`.     |
 | Guardrails return errors when calling the model    | Verify `OPENAI_BASE_URL`, `OPENAI_MODEL_NAME`, and `OPENAI_API_KEY` in the NeMo Guardrails configuration.            |
 | 403 or connection errors from IPP                  | Verify the NeMo Guardrails Route is reachable over HTTPS and that the relevant NetworkPolicy permits the connection. |
+| `unknown NeMo guardrails status "success"` (IPP 500) | NeMo allowed the request; **upgrade `payload-processing`** to an image with [PR #434](https://github.com/opendatahub-io/ai-gateway-payload-processing/pull/434). Pre-#434 plugins expect top-level `passed`, not TrustyAI `success`. |
+| NeMo `/v1/guardrail/checks` returns `success` but MaaS fails | Same as above — not a NeMo config bug. Check `payload-processing` image age vs #434. |
+| 403 on “Say hello…” but banking prompts work in `test-guardrail.sh` | Expected with the demo gatekeeper: small talk is blocked. Use an on-topic prompt in `scripts/test-maas.sh` for a happy-path E2E test. |
