@@ -141,11 +141,15 @@ The `setup-guardrail` Make target:
 
 ### Required environment variables
 
-| Variable            | Purpose                                               |
-| ------------------- | ----------------------------------------------------- |
-| `OPENAI_API_KEY`    | API key used by the NeMo Guardrails LLM configuration |
-| `OPENAI_MODEL_NAME` | Model name used by the guardrails configuration       |
-| `OPENAI_BASE_URL`   | Direct OpenAI-compatible endpoint for that model      |
+| Variable                   | Purpose                                                                 |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `OPENAI_API_KEY`           | API key used by the NeMo Guardrails LLM configuration                   |
+| `OPENAI_MODEL_NAME`        | Model name for NeMo’s **main** generation path in `config.yaml`         |
+| `OPENAI_BASE_URL`          | Direct OpenAI-compatible base URL for that model (must **not** be MaaS) |
+| `GUARDRAIL_LLM_BASE_URL`   | Direct OpenAI-compatible base URL for `self_check` rails (see template) |
+| `GUARDRAIL_LLM_MODEL_NAME` | Model name NeMo uses for `self_check_input` / `self_check_output`       |
+
+`GUARDRAIL_LLM_*` must point at a **direct** model endpoint, not the MaaS Route (same recursion rule as `OPENAI_BASE_URL`).
 
 ### Example
 
@@ -155,6 +159,8 @@ From the repository root:
 export OPENAI_API_KEY='<your-key>'
 export OPENAI_MODEL_NAME='<model-id>'
 export OPENAI_BASE_URL='https://<direct-model-endpoint>/v1'
+export GUARDRAIL_LLM_BASE_URL='https://<direct-self-check-endpoint>/v1'
+export GUARDRAIL_LLM_MODEL_NAME='<self-check-model-id>'
 
 make setup-guardrail
 ```
@@ -239,8 +245,9 @@ The Route and the direct model endpoint are **not the same thing**:
 | URL                                                 | Used by         | Purpose                               |
 | --------------------------------------------------- | --------------- | ------------------------------------- |
 | `OPENAI_BASE_URL`                                   | NeMo Guardrails | Calls the LLM used by guardrails      |
-| `GUARDRAIL_BASE_URL` / `--nemo-guardrail-check-url` | MaaS IPP        | Calls the NeMo Guardrails checks API  |
-| `MAAS_BASE_URL`                                     | MaaS clients    | Sends inference requests through MaaS |
+| `GUARDRAIL_BASE_URL` / `--nemo-guardrail-check-url` | MaaS IPP, `test-guardrail.sh` | NeMo Guardrails **Route** base URL (checks API under `/v1/guardrail/checks`) |
+| `SELF_CHECK_LLM_URL` / `SELF_CHECK_LLM_NAME`       | `test-guardrail.sh` only      | Same self-check model as `GUARDRAIL_LLM_*` — used to verify that endpoint directly |
+| `MAAS_BASE_URL` / `MAAS_TOKEN`                     | `test-maas.sh`, MaaS clients  | MaaS Route and bearer token for `/v1/models` and `/v1/chat/completions` |
 
 ---
 
@@ -319,48 +326,71 @@ The default timeout for guardrail HTTP calls is 10 seconds.
 
 ## Step 4: Test the configuration
 
-### Test NeMo Guardrails directly
+Both test scripts take **two positional arguments**: `<model-name>` and `<prompt>`. They do not read the model name or prompt from environment variables.
 
-`scripts/test-guardrail.sh` calls:
+| Script | Usage | Help |
+| ------ | ----- | ---- |
+| `scripts/test-guardrail.sh` | `./scripts/test-guardrail.sh <model-name> <prompt>` | — |
+| `scripts/test-maas.sh` | `./scripts/test-maas.sh <model-name> <prompt>` | `./scripts/test-maas.sh -h` |
 
-```text
-POST /v1/guardrail/checks
-```
+Use a **banking-related** prompt with the demo gatekeeper (for example `What is the bank rate?`). Prompts such as “Say hello in one short sentence.” are expected to be **blocked** on the MaaS path when input guardrails are enabled.
 
-using `GUARDRAIL_BASE_URL`.
+### Environment variables for `test-guardrail.sh`
 
-Set the Route URL:
+| Variable | Required | Purpose |
+| -------- | -------- | ------- |
+| `GUARDRAIL_BASE_URL` | Yes | NeMo Guardrails Route base URL (no path suffix). Example: `https://nemo-guardrails-demo.<cluster-domain>` |
+| `SELF_CHECK_LLM_URL` | Yes | Base URL of the model used for NeMo `self_check` rails — same target as `GUARDRAIL_LLM_BASE_URL` at deploy time (direct endpoint, not MaaS) |
+| `SELF_CHECK_LLM_NAME` | Yes | Model id for that endpoint — same value as `GUARDRAIL_LLM_MODEL_NAME` |
+
+Example (after Step 2):
 
 ```bash
 export GUARDRAIL_BASE_URL="https://${GUARDRAIL_HOST}"
+
+# Match the GUARDRAIL_LLM_* values used in make setup-guardrail
+export SELF_CHECK_LLM_URL='https://<direct-self-check-endpoint>'   # or in-cluster service URL
+export SELF_CHECK_LLM_NAME='<self-check-model-id>'
+
+./scripts/test-guardrail.sh "gpt-oss-20b" "What is the bank rate?"
 ```
 
-Then run:
+The script runs three checks (in order):
 
-```bash
-./scripts/test-guardrail.sh "<model-name>" "What is the capital of France?"
-```
+1. **`POST ${GUARDRAIL_BASE_URL}/v1/guardrail/checks`** — input rails only (same API shape IPP uses, plus optional `guardrails.options` for logging).
+2. **`POST ${GUARDRAIL_BASE_URL}/v1/chat/completions`** — full NeMo chat path through guardrails (generation + output rails in the demo config).
+3. **`POST ${SELF_CHECK_LLM_URL}/v1/chat/completions`** — connectivity smoke test to the self-check model. This sends your **user prompt only**; it does **not** run NeMo’s `self_check_input` template.
 
-The script requires:
+Dependencies: `curl`, `jq`.
 
-* `curl`
-* `jq`
+This verifies NeMo and its backing LLMs **without** MaaS or IPP.
 
-This test verifies that the NeMo Guardrails API and its configured LLM endpoint are working independently of MaaS.
+### Environment variables for `test-maas.sh`
 
-### Test MaaS end-to-end
+| Variable | Required | Purpose |
+| -------- | -------- | ------- |
+| `MAAS_BASE_URL` | Yes | MaaS Route base URL (same host clients use for OpenAI-compatible APIs) |
+| `MAAS_TOKEN` | Yes | Bearer token for `Authorization: Bearer …` |
 
-`scripts/test-maas.sh` sends a request through MaaS and therefore exercises the IPP guardrails after they have been enabled.
+The **model** and **prompt** are the two script arguments (not `MAAS_MODEL_NAME` in the environment).
+
+Example:
 
 ```bash
 export MAAS_BASE_URL='https://<maas-route-host>'
 export MAAS_TOKEN='<bearer-token>'
-export MAAS_MODEL_NAME='<model-id>'
 
-./scripts/test-maas.sh
+./scripts/test-maas.sh "gpt-oss-20b" "What is the bank rate?"
 ```
 
-Use the same MaaS Route that a client would use.
+The script:
+
+1. Calls **`GET ${MAAS_BASE_URL}/v1/models`** and lists model ids.
+2. Calls **`POST ${MAAS_BASE_URL}/v1/chat/completions`** with a single user message (`max_tokens: 1024`).
+
+Run this only **after** `scripts/enable-ipp-nemo.py` (and after upgrading `payload-processing` per the disclaimer above) so the request flows through IPP and NeMo input (and output, if enabled) guardrails.
+
+Dependencies: `curl`, `jq`.
 
 The request flow is:
 
@@ -390,11 +420,6 @@ Model
 MaaS client
 ```
 
-The script requires:
-
-* `curl`
-* `jq`
-
 ---
 
 ## Reference
@@ -402,11 +427,11 @@ The script requires:
 | Path                           | Purpose                                                              |
 | ------------------------------ | -------------------------------------------------------------------- |
 | `Makefile` (`setup-guardrail`) | Creates the Secret and ConfigMap and applies the `NemoGuardrails` CR |
-| `yaml/demo/nemo-cm.yaml.tmpl`  | NeMo Guardrails configuration and `OPENAI_*` substitution            |
+| `yaml/demo/nemo-cm.yaml.tmpl`  | NeMo Guardrails configuration and `OPENAI_*` / `GUARDRAIL_LLM_*` substitution |
 | `yaml/demo/nemo-cr.yaml`       | `NemoGuardrails` instance                                            |
 | `scripts/enable-ipp-nemo.py`   | Enables NeMo plugins in MaaS IPP                                     |
-| `scripts/test-guardrail.sh`    | Tests the NeMo Guardrails checks API                                 |
-| `scripts/test-maas.sh`         | Tests MaaS `/v1/models` and `/v1/chat/completions`                   |
+| `scripts/test-guardrail.sh`    | Direct NeMo tests: `/v1/guardrail/checks`, `/v1/chat/completions`, self-check LLM |
+| `scripts/test-maas.sh`         | MaaS E2E: `/v1/models` and `/v1/chat/completions` via IPP guardrails |
 
 ### Related repositories
 
