@@ -326,11 +326,11 @@ The default timeout for guardrail HTTP calls is 10 seconds.
 
 ## Step 4: Test the configuration
 
-Both test scripts take **two positional arguments**: `<model-name>` and `<prompt>`. They do not read the model name or prompt from environment variables.
+Both test scripts take **two positional arguments**: `<model-name>` and `<prompt>`. 
 
 | Script | Usage | Help |
 | ------ | ----- | ---- |
-| `scripts/test-guardrail.sh` | `./scripts/test-guardrail.sh <model-name> <prompt>` | — |
+| `scripts/test-guardrail.sh` | `./scripts/test-guardrail.sh <model-name> <prompt>` | `./scripts/test-guardrail.sh -h` |
 | `scripts/test-maas.sh` | `./scripts/test-maas.sh <model-name> <prompt>` | `./scripts/test-maas.sh -h` |
 
 Use a **banking-related** prompt with the demo gatekeeper (for example `What is the bank rate?`). Prompts such as “Say hello in one short sentence.” are expected to be **blocked** on the MaaS path when input guardrails are enabled.
@@ -340,8 +340,8 @@ Use a **banking-related** prompt with the demo gatekeeper (for example `What is 
 | Variable | Required | Purpose |
 | -------- | -------- | ------- |
 | `GUARDRAIL_BASE_URL` | Yes | NeMo Guardrails Route base URL (no path suffix). Example: `https://nemo-guardrails-demo.<cluster-domain>` |
-| `SELF_CHECK_LLM_URL` | Yes | Base URL of the model used for NeMo `self_check` rails — same target as `GUARDRAIL_LLM_BASE_URL` at deploy time (direct endpoint, not MaaS) |
-| `SELF_CHECK_LLM_NAME` | Yes | Model id for that endpoint — same value as `GUARDRAIL_LLM_MODEL_NAME` |
+| `SELF_CHECK_LLM_URL` | Yes | Base URL of the model used for NeMo `self_check` rails. |
+| `SELF_CHECK_LLM_NAME` | Yes | Model id for the  `SELF_CHECK_LLM_URL` endpoint. |
 
 Example (after Step 2):
 
@@ -372,7 +372,7 @@ This verifies NeMo and its backing LLMs **without** MaaS or IPP.
 | `MAAS_BASE_URL` | Yes | MaaS Route base URL (same host clients use for OpenAI-compatible APIs) |
 | `MAAS_TOKEN` | Yes | Bearer token for `Authorization: Bearer …` |
 
-The **model** and **prompt** are the two script arguments (not `MAAS_MODEL_NAME` in the environment).
+The **model** and **prompt** are the two script arguments.
 
 Example:
 
