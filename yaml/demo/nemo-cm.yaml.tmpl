@@ -5,7 +5,6 @@ metadata:
   namespace: demo
 
 data:
-
   # ==============================================================
   # config.yaml
   # ==============================================================
@@ -16,7 +15,16 @@ data:
         model: "${OPENAI_MODEL_NAME}"
         api_key_env_var: OPENAI_API_KEY
         parameters:
-          base_url: "${OPENAI_BASE_URL}"        
+          base_url: "${OPENAI_BASE_URL}"
+      # LLM used by NeMo Guardrails self-check flows
+      - type: self_check
+        engine: openai
+        model: "${GUARDRAIL_LLM_MODEL_NAME}"
+        parameters:
+          base_url: "${GUARDRAIL_LLM_BASE_URL}"
+          chat_template_kwargs:
+            enable_thinking: false
+
     rails:
       input:
         flows:
@@ -103,7 +111,6 @@ data:
                 if int(account_number) <= 1000:
                     return BLOCK_RESULT
         return True
-
 
     # === Weather Guardrails Helpers ===============================================================
     WMO_DESCRIPTIONS = {

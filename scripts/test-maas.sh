@@ -1,16 +1,26 @@
 #!/bin/sh
 
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "Usage: $0 <model-name> <prompt>"
+    echo "Example: $0 \"gpt-oss-20b\" \"What is the bank rate?\""
+    exit 0
+fi
+
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <model-name> <prompt>"
+    echo "Example: $0 test \"Say hello in one short sentence.\""
+    exit 1
+fi
+
+MAAS_MODEL_NAME="$1"
+PROMPT="$2"
+
 echo "=== Checking environment variables ==="
 
 ERROR=0
 
 [ -z "${MAAS_TOKEN:-}" ] && {
     echo "❌ MAAS_TOKEN is not set or empty"
-    ERROR=1
-}
-
-[ -z "${MAAS_MODEL_NAME:-}" ] && {
-    echo "❌ MAAS_MODEL_NAME is not set or empty"
     ERROR=1
 }
 
@@ -26,6 +36,7 @@ fi
 echo "✅ MAAS_TOKEN is set"
 echo "✅ MAAS_MODEL_NAME=$MAAS_MODEL_NAME"
 echo "✅ MAAS_BASE_URL=$MAAS_BASE_URL"
+echo "✅ PROMPT=$PROMPT"
 echo
 
 echo "=== Checking dependencies ==="
@@ -86,16 +97,19 @@ response=$(curl -sS \
     -w '\n%{http_code}' \
     -H "Authorization: Bearer $MAAS_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{
-        \"model\": \"$MAAS_MODEL_NAME\",
-        \"messages\": [
-            {
-                \"role\": \"user\",
-                \"content\": \"Say hello in one short sentence.\"
-            }
-        ],
-        \"max_tokens\": 1024
-    }" \
+    -d "$(jq -n \
+        --arg model "$MAAS_MODEL_NAME" \
+        --arg prompt "$PROMPT" \
+        '{
+            model: $model,
+            messages: [
+                {
+                    role: "user",
+                    content: $prompt
+                }
+            ],
+            max_tokens: 1024
+        }')" \
     "$CHAT_URL") || {
     echo "❌ curl request failed: $CHAT_URL"
     exit 1
