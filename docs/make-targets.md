@@ -24,9 +24,9 @@ Variables you may override:
 
 | Target | Description |
 | :---- | :---- |
-| `setup-demo` | `setup-namespace` + MinIO + ODH-TEC + pipelines + model PVC, GuideLLM, benchmark arena, ai-toolkit, Open WebUI, custom model catalog, EvalHub RBAC |
+| `setup-demo` | `setup-namespace` + SeaweedFS + ODH-TEC + pipelines + model PVC, GuideLLM, benchmark arena, ai-toolkit, Open WebUI, custom model catalog, EvalHub RBAC |
 | `setup-namespace` | Creates `demo` and `evalhub` projects with required labels |
-| `deploy-minio` / `teardown-minio` | MinIO StatefulSet and data connection (pipelines) |
+| `deploy-seaweedfs` / `teardown-seaweedfs` | SeaweedFS S3 storage via Helm chart and data connection (pipelines) |
 | `setup-odh-tec` / `show-odh-tec` / `teardown-odh-tec` | Object storage browser (ODH-TEC) |
 | `deploy-pipeline` / `teardown-pipeline` | Data Science Pipelines (DSPA) |
 | `teardown-namespace` / `teardown-all` | Remove demo resources |

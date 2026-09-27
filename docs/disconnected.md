@@ -14,7 +14,7 @@ Additional images and model packaging when the cluster has no direct internet ac
 | quay.io/rh-aiservices-bu/odh-tec:latest | Open Data Hub Tools |
 | registry.redhat.io/ubi9/python-312:latest | Python 3.12 |
 | docker.io/amazon/aws-cli:latest | AWS CLI  |
-| quay.io/minio/minio | Minio |
+| chrislusf/seaweedfs | SeaweedFS |
 | ghcr.io/open-webui/open-webui:main | Open WebUI |
 | Value of `RHAIIS_IMAGE` in Makefile (e.g. `registry.redhat.io/rhaii-early-access/vllm-cuda-rhel9:3.5.0-ea.2`) | vLLM ServingRuntime for CUDA |
 | quay.io/ltsai/guidellm:0.3.0 | GuideLLM |
