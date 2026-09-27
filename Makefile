@@ -115,7 +115,7 @@ setup-rhoai: add-gpu-operator add-nfs-provisioner rhoai-prereq
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-pgsql.yaml
 	oc apply -f ${BASE}/yaml/rhoai/mlflow-cr.yaml
 	
-	oc apply -f ${BASE}/yaml/rhoai/evalhub-pgsql.yaml -n $(EVALHUB_NAMESPACE)
+	oc apply -f ${BASE}/yaml/rhoai/evalhub-pgsql.yml -n $(EVALHUB_NAMESPACE)
 	oc apply -f ${BASE}/yaml/rhoai/evalhub-cr.yaml -n $(EVALHUB_NAMESPACE)
 	
 	@echo "Installing grafana operator"
@@ -156,7 +156,7 @@ setup-osc:
 setup-mcp-gateway:
 	@$(BASE)/scripts/setup-mcp-gateway.sh
 
-	@CLUSTER_DOMAIN=CLUSTER_DOMAIN $(BASE)/scripts/deploy-mcp-server.sh demo ocp-mcp-server $(BASE)/yaml/demo/mcp-ocp.yaml	
+	@CLUSTER_DOMAIN=$(CLUSTER_DOMAIN) $(BASE)/scripts/deploy-mcp-server.sh demo ocp-mcp-server $(BASE)/yaml/demo/mcp-ocp.yaml
 
 	@echo "Testing mcp server"
 	@$(BASE)/scripts/test-mcp-server.sh demo ocp-mcp-server
@@ -263,7 +263,7 @@ add-gpu-operator:
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
 
 .PHONY: setup-demo
-setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipline
+setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipeline
 
 	oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
 	oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml
@@ -422,7 +422,7 @@ teardown-pipeline:
 	-oc delete -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
 
 .PHONY: deploy-pipeline
-deploy-pipline: teardown-pipeline	
+deploy-pipeline: teardown-pipeline
 	@AWS_ACCESS_KEY_ID=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_USER -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64 ) \
 	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
 	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
