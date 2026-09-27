@@ -21,7 +21,7 @@ By following this guide, you will:
 2. **Serve LLM models** — Deploy models from Hugging Face or OCI registries using vLLM and KServe
 3. **Benchmark inference** — Measure throughput and latency with GuideLLM and compare models side-by-side
 4. **Build AI applications** — Use Open WebUI, Llama Stack, and MCP servers to create interactive AI experiences
-5. **Enable enterprise features** — Configure MaaS, guardrails, distributed inference, and multi-GPU deployments
+5. **Enable Models-as-a-Service** — Deploy models to MaaS for multi-tenant access with usage quotas
 
 ---
 
@@ -198,8 +198,8 @@ With the platform running, explore these topics based on your interests:
 
 | Topic | Description | Guide |
 | :--- | :--- | :--- |
-| Models-as-a-Service | Multi-tenant model serving with quotas | [maas-guardrails-overview.md](docs/demo/maas-guardrails-overview.md) |
-| NeMo Guardrails | Input/output filtering for safe AI | [maas-guardrails.md](docs/maas-guardrails.md) |
+| Models-as-a-Service | Multi-tenant model serving with quotas | [maas.md](docs/demo/maas.md) |
+| NeMo Guardrails | Policy enforcement, PII masking, and content filtering | [guardrails.md](docs/demo/guardrails.md) |
 
 ---
 
@@ -213,7 +213,7 @@ These targets enable specific features not included in the base installation:
 | `setup-mcp-gateway` | Deploy MCP gateway for tool integrations |
 | `setup-ai-playground` | Set up AI playground with Llama Stack and MCP servers |
 | `download-and-serve-models` | Deploy sample models (Qwen, GPT-OSS) |
-| `setup-guardrail` | Configure NeMo Guardrails (requires `OPENAI_*` and `GUARDRAIL_LLM_*` env vars) |
+| `setup-guardrail` | Configure NeMo Guardrails (experimental, requires `OPENAI_*` and `GUARDRAIL_LLM_*` env vars) |
 | `setup-osc` | Install OpenShift Sandboxed Containers (Kata) |
 | `setup-openshell` | Deploy OpenShell on Kata for secure execution |
 | `setup-kueue-demo` | Apply external Kueue demo manifests |

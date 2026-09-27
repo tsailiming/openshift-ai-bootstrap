@@ -17,4 +17,5 @@ Hands-on examples for model serving, benchmarking, and platform features. Return
 | LLM Compressor workbench | [llm-compressor.md](llm-compressor.md) |
 | Gen AI playground (MCP, RAG) | [ai-playground.md](ai-playground.md) |
 | Distributed inference (llm-d) | [llm-d.md](llm-d.md) |
-| MaaS + NeMo Guardrails | [maas-guardrails-overview.md](maas-guardrails-overview.md) → [full guide](../maas-guardrails.md) |
+| Models-as-a-Service (MaaS) | [maas.md](maas.md) |
+| NeMo Guardrails | [guardrails.md](guardrails.md) |
