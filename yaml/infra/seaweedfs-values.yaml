@@ -1,0 +1,104 @@
+# Minimal SeaweedFS for OpenShift development
+# Based on: https://github.com/seaweedfs/seaweedfs/wiki/Helm-Chart-Recipes#single-node-for-development
+# With OpenShift security contexts from: https://github.com/seaweedfs/seaweedfs/blob/master/k8s/charts/seaweedfs/openshift-values.yaml
+
+fullnameOverride: seaweedfs
+
+master:
+  data:
+    type: persistentVolumeClaim
+    size: 1Gi
+  logs:
+    type: emptyDir
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+volume:
+  dataDirs:
+    - name: data
+      type: persistentVolumeClaim
+      size: 10Gi
+      maxVolumes: 0
+  logs:
+    type: emptyDir
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+filer:
+  data:
+    type: persistentVolumeClaim
+    size: 1Gi
+  logs:
+    type: emptyDir
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+s3:
+  enabled: true
+  enableAuth: true
+  credentials:
+    admin:
+      accessKey: admin
+      secretKey: admin
+  createBuckets:
+    - name: models
+    - name: pipeline
+  logs:
+    type: emptyDir
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+admin:
+  enabled: true
+  secret:
+    adminUser: admin
+    adminPassword: admin
+  logs:
+    type: emptyDir
+  podSecurityContext:
+    enabled: true
+    runAsNonRoot: true
+  containerSecurityContext:
+    enabled: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault

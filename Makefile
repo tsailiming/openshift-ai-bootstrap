@@ -263,7 +263,7 @@ add-gpu-operator:
 	oc apply -f $(BASE)/yaml/rhoai/nvidia-cr.yaml
 
 .PHONY: setup-demo
-setup-demo: setup-namespace deploy-minio setup-odh-tec deploy-pipeline
+setup-demo: setup-namespace deploy-seaweedfs setup-odh-tec deploy-pipeline
 
 	oc apply -f $(BASE)/yaml/infra/model-pvc.yaml
 	oc apply -f $(BASE)/yaml/infra/llmcompressor-is.yaml
@@ -377,59 +377,64 @@ teardown-odh-tec:
 	@oc delete -f $(BASE)/yaml/infra/odh-tec.yaml -n $(NAMESPACE)
 	
 .PHONY: teardown-all
-teardown-all: teardown-minio teardown-odh-tec teardown-namespace
+teardown-all: teardown-seaweedfs teardown-odh-tec teardown-namespace
 		
-.PHONY: teardown-minio
-teardown-minio:
-	-oc delete -f $(BASE)/yaml/infra/minio.yaml -n $(NAMESPACE)
+.PHONY: teardown-seaweedfs
+teardown-seaweedfs:
+	-helm uninstall seaweedfs -n $(NAMESPACE)
+	-oc delete route seaweedfs-admin -n $(NAMESPACE) 2>/dev/null || true
+	-oc delete secret aws-connection-my-storage -n $(NAMESPACE)
+	-oc delete pvc -l app.kubernetes.io/name=seaweedfs -n $(NAMESPACE) 2>/dev/null || true
+
+.PHONY: deploy-seaweedfs
+deploy-seaweedfs: teardown-seaweedfs
+	@helm repo add seaweedfs https://seaweedfs.github.io/seaweedfs/helm || true
+	@helm repo update seaweedfs
 	
-	@PV_NAME=$$(oc get pvc data-minio-0 -n $(NAMESPACE) -o jsonpath='{.spec.volumeName}' 2>/dev/null); \
-	oc delete pvc data-minio-0 -n $(NAMESPACE); \
-	if [ -z "$$PV_NAME" ]; then \
-		echo "PVC data-minio-0 already deleted or has no PV bound."; \
-	else \
-		echo "Waiting for PV $$PV_NAME to be deleted..."; \
-		until ! oc get pv $$PV_NAME >/dev/null 2>&1; do \
-			echo "PV $$PV_NAME still exists..."; \
-			sleep 2; \
-		done; \
-		echo "PV $$PV_NAME deleted."; \
-	fi
-
-.PHONY: deploy-minio
-deploy-minio: teardown-minio
-	@oc apply -f $(BASE)/yaml/infra/minio.yaml -n $(NAMESPACE)
-
-	@until oc get statefulset minio -n $(NAMESPACE) -o jsonpath='{.status.readyReplicas}' | grep -q '1'; do \
-		echo "Waiting for StatefulSet minio to have 1 ready replica..."; \
+	@helm install seaweedfs seaweedfs/seaweedfs \
+		-n $(NAMESPACE) \
+		-f $(BASE)/yaml/infra/seaweedfs-values.yaml
+	
+	@echo "Waiting for SeaweedFS S3 gateway to be ready..."
+	@until oc get deployment seaweedfs-s3 -n $(NAMESPACE) -o jsonpath='{.status.readyReplicas}' 2>/dev/null | grep -q '1'; do \
+		echo "Waiting for SeaweedFS S3 deployment..."; \
 		sleep 10; \
 	done
-	@echo "StatefulSet minio has 1 ready replica."
-
-	-oc delete secret aws-connection-my-storage -n $(NAMESPACE)
-
-	@AWS_ACCESS_KEY_ID=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_USER -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64 ) \
-	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
-	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
-	AWS_ENDPOINT_URL=minio.$(NAMESPACE).svc.cluster.local \
-		envsubst < $(BASE)/yaml/infra/data-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
-		
-	@$(BASE)/scripts/run-job.sh $(BASE)/yaml/infra/setup-s3.yaml.tmpl $(NAMESPACE) setup-s3-job aws-connection-my-storage
+	@echo "SeaweedFS S3 gateway is ready."
+	
+	@echo "Creating data connection secret..."
+	@AWS_ACCESS_KEY_ID=$$(oc get secret seaweedfs-s3-secret -n $(NAMESPACE) -o jsonpath='{.data.admin_access_key_id}' | base64 -d) \
+	AWS_SECRET_ACCESS_KEY=$$(oc get secret seaweedfs-s3-secret -n $(NAMESPACE) -o jsonpath='{.data.admin_secret_access_key}' | base64 -d) \
+	AWS_S3_ENDPOINT=seaweedfs-s3.$(NAMESPACE).svc.cluster.local \
+	AWS_ENDPOINT_URL=seaweedfs-s3.$(NAMESPACE).svc.cluster.local \
+	AWS_S3_PORT=8333 \
+		envsubst < $(BASE)/yaml/infra/data-connection-seaweedfs.yaml.tmpl | oc apply -n $(NAMESPACE) -f -
+	
+	@echo "Creating Route for Admin UI..."
+	@oc create route edge seaweedfs-admin --service=seaweedfs-admin --port=23646 -n $(NAMESPACE) 2>/dev/null || true
+	
+	@ADMIN_ROUTE=$$(oc get route seaweedfs-admin -n $(NAMESPACE) -o jsonpath='{.spec.host}' 2>/dev/null) && \
+		echo "SeaweedFS Admin UI: https://$$ADMIN_ROUTE"
+	@echo "SeaweedFS S3 endpoint: http://seaweedfs-s3.$(NAMESPACE).svc.cluster.local:8333"
 
 .PHONY: teardown-pipeline
 teardown-pipeline: 
-	-oc delete -f $(BASE)/yaml/infra/dashboard-dspa-secret.yaml -n $(NAMESPACE)
+	-oc delete secret dashboard-dspa-secret -n $(NAMESPACE)
 	-oc delete -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
 
 .PHONY: deploy-pipeline
 deploy-pipeline: teardown-pipeline
-	@AWS_ACCESS_KEY_ID=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_USER -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64 ) \
-	AWS_SECRET_ACCESS_KEY=$$(oc extract secret/minio  --to=- --keys=MINIO_ROOT_PASSWORD -n $(NAMESPACE) 2>/dev/null | tr -d '\n' | base64) \
-	AWS_S3_ENDPOINT=minio.$(NAMESPACE).svc.cluster.local \
-	AWS_ENDPOINT_URL=minio.$(NAMESPACE).svc.cluster.local \
-	  envsubst < $(BASE)/yaml/infra/pipeline-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -	
+	@AWS_ACCESS_KEY_ID=$$(oc get secret seaweedfs-s3-secret -n $(NAMESPACE) -o jsonpath='{.data.admin_access_key_id}' | base64 -d) \
+	AWS_SECRET_ACCESS_KEY=$$(oc get secret seaweedfs-s3-secret -n $(NAMESPACE) -o jsonpath='{.data.admin_secret_access_key}' | base64 -d) \
+	AWS_S3_ENDPOINT=seaweedfs-s3.$(NAMESPACE).svc.cluster.local \
+	AWS_ENDPOINT_URL=seaweedfs-s3.$(NAMESPACE).svc.cluster.local \
+	AWS_S3_PORT=8333 \
+	  envsubst < $(BASE)/yaml/infra/pipeline-connection-s3.yaml.tmpl | oc apply -n $(NAMESPACE) -f -
 
-	@oc apply -f $(BASE)/yaml/infra/dashboard-dspa-secret.yaml -n $(NAMESPACE)
+	@AWS_ACCESS_KEY_ID=$$(oc get secret seaweedfs-s3-secret -n $(NAMESPACE) -o jsonpath='{.data.admin_access_key_id}' | base64 -d) \
+	AWS_SECRET_ACCESS_KEY=$$(oc get secret seaweedfs-s3-secret -n $(NAMESPACE) -o jsonpath='{.data.admin_secret_access_key}' | base64 -d) \
+	  envsubst < $(BASE)/yaml/infra/dashboard-dspa-secret.yaml.tmpl | oc apply -n $(NAMESPACE) -f -
+
 	@oc apply -f $(BASE)/yaml/infra/dspa.yaml -n $(NAMESPACE)
 
 .PHONY: setup-kueue-demo

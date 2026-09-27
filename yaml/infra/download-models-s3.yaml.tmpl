@@ -25,8 +25,8 @@ spec:
 
             ./aws/install -i /opt/app-root/src/aws-cli -b /opt/app-root/src/bin            
 
-            until curl --silent --head --fail http://minio:9000/minio/health/live; do
-                echo "Waiting for MinIO to be ready..."
+            until curl --silent --head --fail http://seaweedfs-s3:8333; do
+                echo "Waiting for SeaweedFS S3 to be ready..."
                 sleep 5
             done
             

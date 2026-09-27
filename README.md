@@ -103,7 +103,7 @@ oc project demo
 
 This creates the `demo` project with:
 
-- **MinIO** — Object storage for pipelines and artifacts
+- **SeaweedFS** — S3-compatible object storage for pipelines and artifacts
 - **ODH-TEC** — Browser-based storage explorer
 - **Data Science Pipelines** — ML workflow orchestration
 - **Model PVC** — Shared storage for downloaded models

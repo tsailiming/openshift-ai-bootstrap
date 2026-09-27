@@ -30,8 +30,8 @@ spec:
     externalStorage:
       basePath: ''
       bucket: pipeline
-      host: 'minio.demo.svc.cluster.local:9000'
-      port: ''
+      host: 'seaweedfs-s3.demo.svc.cluster.local'
+      port: '8333'
       region: us-east-1
       s3CredentialsSecret:
         accessKey: AWS_ACCESS_KEY_ID
