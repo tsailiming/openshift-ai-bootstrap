@@ -1,0 +1,46 @@
+# LLMInferenceService for MaaS + llm-d.
+# Platform well-known configs auto-inject; accelerator via baseRefs.
+# On RHOAI 3.5, configs are version-prefixed (v3-5-0-kserve-...); override with BASE_REF.
+apiVersion: serving.kserve.io/v1alpha1
+kind: LLMInferenceService
+metadata:
+  name: ${NAME}
+  namespace: ${MAAS_MODEL_NS}
+  annotations:
+    openshift.io/display-name: ${DISPLAY_NAME}
+    opendatahub.io/model-type: generative
+    opendatahub.io/hardware-profile-name: nvidia-gpu
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+    security.opendatahub.io/enable-auth: "true"
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"
+spec:
+  model:
+    name: ${SERVED_NAME}
+    uri: ${MODEL_URI}
+  replicas: ${REPLICAS}
+  baseRefs:
+    - name: ${BASE_REF}
+  router:
+    route: {}
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+    scheduler: {}
+  template:
+    containers:
+      - name: main
+        env:
+          - name: VLLM_ADDITIONAL_ARGS
+            value: "--enable-force-include-usage ${VLLM_EXTRA_ARGS}"
+        resources:
+          limits:
+            cpu: "4"
+            memory: 32Gi
+            nvidia.com/gpu: "${GPUS}"
+          requests:
+            cpu: "2"
+            memory: 16Gi
+            nvidia.com/gpu: "${GPUS}"

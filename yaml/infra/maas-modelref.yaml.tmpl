@@ -1,0 +1,12 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: ${NAME}
+  namespace: ${MAAS_MODEL_NS}
+  annotations:
+    openshift.io/display-name: ${DISPLAY_NAME}
+    openshift.io/description: "MaaS model ref for ${SERVED_NAME}"
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: ${NAME}

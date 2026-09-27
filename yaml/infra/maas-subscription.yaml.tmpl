@@ -1,0 +1,20 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: ${NAME}-premium
+  namespace: ${MAAS_NS}
+  annotations:
+    openshift.io/display-name: "${DISPLAY_NAME} Premium Tier"
+    openshift.io/description: "Premium tier for ${DISPLAY_NAME}: ${TOKEN_LIMIT} tokens/${TOKEN_WINDOW}"
+spec:
+  owner:
+    groups:
+      - name: ${OWNER_GROUP}
+    users: []
+  modelRefs:
+    - name: ${NAME}
+      namespace: ${MAAS_MODEL_NS}
+      tokenRateLimits:
+        - limit: ${TOKEN_LIMIT}
+          window: ${TOKEN_WINDOW}
+  priority: ${PRIORITY}

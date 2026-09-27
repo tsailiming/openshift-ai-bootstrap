@@ -1,0 +1,16 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: ${NAME}-access
+  namespace: ${MAAS_NS}
+  annotations:
+    openshift.io/display-name: "${DISPLAY_NAME} Access"
+    openshift.io/description: "Grants ${OWNER_GROUP} access to ${NAME}"
+spec:
+  modelRefs:
+    - name: ${NAME}
+      namespace: ${MAAS_MODEL_NS}
+  subjects:
+    groups:
+      - name: ${OWNER_GROUP}
+    users: []

@@ -305,11 +305,15 @@ setup-guardrail:
 .PHONY: setup-ai-playground
 setup-ai-playground: 
 # 	@echo "Serving llama-32-3b-instruct"
-# 	@$(BASE)/scripts/serve-model.sh oci llama-32-3b-instruct oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
+# 	@$(BASE)/scripts/serve-model.sh llama-32-3b-instruct \
+# 		oci://quay.io/redhat-ai-services/modelcar-catalog:llama-3.2-3b-instruct \
+# 		--vllm-args "--max-model-len 32768 --enable-auto-tool-choice --tool-call-parser=llama3_json --chat-template=/opt/app-root/template/tool_chat_template_llama3.2_json.jinja"
 	
 # 	@echo "Downloading and deploying Qwen/Qwen3-30B-A3B-Thinking-2507-FP8"
 # 	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3-30B-A3B-Thinking-2507-FP8
-# 	@$(BASE)/scripts/scripts/serve-model.sh pvc qwen3.5-35b-a3b-fp8-dynamic RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic/ "--max-model-len 32768 --trust-remote-code --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 --mm-encoder-tp-mode data"
+# 	@$(BASE)/scripts/serve-model.sh qwen3.5-35b-a3b-fp8-dynamic \
+# 		pvc://models-pvc/RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic \
+# 		--vllm-args "--max-model-len 32768 --trust-remote-code --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 --mm-encoder-tp-mode data"
 
 	oc apply -f $(BASE)/yaml/demo/mcp-kubernetes.yaml -n ${NAMESPACE}
 	oc apply -f $(BASE)/yaml/demo/mcp-weather.yaml -n ${NAMESPACE}
@@ -324,15 +328,21 @@ setup-ai-playground:
 download-and-serve-models:
 	#@echo "Downloading RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic"
 	#@$(BASE)/scripts/download-model.sh pvc RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic
-	#@$(BASE)/scripts/serve-model.sh pvc qwen35-35b-A3b-fp8-dynamic RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic "--max-model-len 4096"
+	#@$(BASE)/scripts/serve-model.sh qwen35-35b-A3b-fp8-dynamic \
+	#	pvc://models-pvc/RedHatAI/Qwen3.5-35B-A3B-FP8-dynamic \
+	#	--vllm-args "--max-model-len 4096"
 
 	@echo "Downloading Qwen/Qwen3.5-27B-FP8"
 	@$(BASE)/scripts/download-model.sh pvc Qwen/Qwen3.5-27B-FP8
-	@$(BASE)/scripts/serve-model.sh pvc qwen35-27b-fp8 Qwen/Qwen3.5-27B-FP8 "--max-model-len 2048 --gpu-memory-utilization 0.97 --kv-cache-dtype fp8"
+	@$(BASE)/scripts/serve-model.sh qwen35-27b-fp8 \
+		pvc://models-pvc/Qwen/Qwen3.5-27B-FP8 \
+		--vllm-args "--max-model-len 2048 --gpu-memory-utilization 0.97 --kv-cache-dtype fp8"
 
 	@echo "Downloading openai/gpt-oss-20b"
 	@$(BASE)/scripts/download-model.sh pvc openai/gpt-oss-20b
-	@$(BASE)/scripts/serve-model.sh pvc gpt-oss-20b openai/gpt-oss-20b "--max-model-len 2048 --gpu-memory-utilization 0.97 --kv-cache-dtype fp8"
+	@$(BASE)/scripts/serve-model.sh gpt-oss-20b \
+		pvc://models-pvc/openai/gpt-oss-20b \
+		--vllm-args "--max-model-len 2048 --gpu-memory-utilization 0.97 --kv-cache-dtype fp8"
 
 .PHONY: teardown-namespace
 teardown-namespace:
